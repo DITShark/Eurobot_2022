@@ -7,6 +7,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GetPlan.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <main_2022/Mission_srv.h>
 
 #include <iostream>
@@ -192,7 +193,7 @@ class mainProgram
 public:
     // Callback Function Define
 
-    void position_callback(const nav_msgs::Odometry::ConstPtr &msg)
+    void position_callback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &msg)
     {
         position_x = msg->pose.pose.position.x;
         position_y = msg->pose.pose.position.y;
@@ -224,6 +225,7 @@ public:
         while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
         {
         }
+
         if (msg->data && moving && now_Mode)
         {
             if (mission_num == mission_List.size() - 1 && mission_List[mission_num].get_missionType() == 'X')
@@ -277,7 +279,12 @@ public:
                             }
                             else
                             {
-                                doing = true;
+                                next_target.pose.position.x = mission_List[goal_num].get_x();
+                                next_target.pose.position.y = mission_List[goal_num].get_y();
+                                next_target.pose.orientation.z = mission_List[goal_num].get_z();
+                                next_target.pose.orientation.w = mission_List[goal_num].get_w();
+                                _target.publish(next_target);
+                                moving = true;
                             }
                         }
                         else
@@ -351,11 +358,11 @@ public:
     ros::Publisher _StopOrNot = nh.advertise<std_msgs::Bool>("Stopornot", 1000);       // Publish emergency state to controller
 
     // ROS Topics Subscribers
-    // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this); // Get position from localization
-    ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("ekf_pose", 1000, &mainProgram::position_callback, this);     // Get position from localization Lu
-    ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this); // Get emergency state from lidar
-    ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);         // Get finish moving state from controller
-    ros::Subscriber _resistance = nh.subscribe<std_msgs::Int32>("resistance", 1000, &mainProgram::resistance_callback, this);      // Get resistor from mission
+    // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this);               // Get position from localization
+    ros::Subscriber _globalFilter = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("ekf_pose", 1000, &mainProgram::position_callback, this); // Get position from localization Lu
+    ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);                   // Get emergency state from lidar
+    ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
+    ros::Subscriber _resistance = nh.subscribe<std_msgs::Int32>("resistance", 1000, &mainProgram::resistance_callback, this);                        // Get resistor from mission
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
@@ -517,23 +524,16 @@ int main(int argc, char **argv)
                     {
                         mission_num++;
                         goal_num++;
-                        if (mission_List[mission_num].get_missionType() != '0')
+                        while (mission_List[goal_num].get_missionType() == '0')
                         {
-                            doing = true;
+                            goal_num++;
                         }
-                        else
-                        {
-                            while (mission_List[goal_num].get_missionType() == '0')
-                            {
-                                goal_num++;
-                            }
-                            next_target.pose.position.x = mission_List[goal_num].get_x();
-                            next_target.pose.position.y = mission_List[goal_num].get_y();
-                            next_target.pose.orientation.z = mission_List[goal_num].get_z();
-                            next_target.pose.orientation.w = mission_List[goal_num].get_w();
-                            mainClass._target.publish(next_target);
-                            moving = true;
-                        }
+                        next_target.pose.position.x = mission_List[goal_num].get_x();
+                        next_target.pose.position.y = mission_List[goal_num].get_y();
+                        next_target.pose.orientation.z = mission_List[goal_num].get_z();
+                        next_target.pose.orientation.w = mission_List[goal_num].get_w();
+                        mainClass._target.publish(next_target);
+                        moving = true;
                     }
                 }
 
