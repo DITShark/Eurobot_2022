@@ -220,7 +220,7 @@ public:
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
         clock_t start = clock();
-        while (clock() - start < 2500000)
+        while (clock() - start < 1500000 && MISSION_NODE_NOEXIST)
         {
         }
         if (msg->data && moving && now_Mode)
