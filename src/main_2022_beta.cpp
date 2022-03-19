@@ -222,10 +222,12 @@ public:
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
         clock_t start = clock();
-        while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
+        if (mission_List[mission_num].get_missionType() != 'X')
         {
+            while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
+            {
+            }
         }
-
         if (msg->data && moving && now_Mode)
         {
             if (mission_num == mission_List.size() - 1 && mission_List[mission_num].get_missionType() == 'X')
