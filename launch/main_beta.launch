@@ -1,6 +1,7 @@
 <launch>
         <param name="/run_state" type="int" value="0" />
         <param name="/side_state" type="int" value="1" />
+        <param name="/mission_waitTime" type="int" value="1500000" />
     <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
     </node>
 </launch>

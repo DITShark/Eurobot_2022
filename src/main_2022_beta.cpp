@@ -126,12 +126,12 @@ const double INI_Z_YELLOW = -0.263;
 const double INI_W_YELLOW = 0.9646;
 
 const double POSITION_CORRECTION_ERROR = 10;
-const int MISSION_WAITTIME = 1500000;
 
 // Variable Define
 
 int side_state; // 1 for yellow , 2 for purple
 int run_state;
+int mission_waitTime;
 
 int mission_num = 0;
 int goal_num = 0;
@@ -221,7 +221,7 @@ public:
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
         clock_t start = clock();
-        while (clock() - start < MISSION_WAITTIME && MISSION_NODE_NOEXIST)
+        while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
         {
         }
         if (msg->data && moving && now_Mode)
@@ -452,6 +452,9 @@ int main(int argc, char **argv)
                     orientation_z = INI_Z_PURPLE;
                     orientation_w = INI_W_PURPLE;
                 }
+
+                mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
+
                 now_Status++;
                 break;
 
