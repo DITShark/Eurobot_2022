@@ -351,10 +351,11 @@ public:
     ros::Publisher _StopOrNot = nh.advertise<std_msgs::Bool>("Stopornot", 1000);       // Publish emergency state to controller
 
     // ROS Topics Subscribers
-    ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this); // Get position from localization
-    ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);  // Get emergency state from lidar
-    ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);          // Get finish moving state from controller
-    ros::Subscriber _resistance = nh.subscribe<std_msgs::Int32>("resistance", 1000, &mainProgram::resistance_callback, this);       // Get resistor from mission
+    // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this); // Get position from localization
+    ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("ekf_pose", 1000, &mainProgram::position_callback, this);     // Get position from localization Lu
+    ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this); // Get emergency state from lidar
+    ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);         // Get finish moving state from controller
+    ros::Subscriber _resistance = nh.subscribe<std_msgs::Int32>("resistance", 1000, &mainProgram::resistance_callback, this);      // Get resistor from mission
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
