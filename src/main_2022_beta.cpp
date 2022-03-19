@@ -498,6 +498,9 @@ int main(int argc, char **argv)
                 break;
 
             case RUN:
+
+                mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
+
                 if (moving && !doing)
                 {
                     ROS_INFO("Moving Now...");
