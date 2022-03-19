@@ -60,7 +60,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  mission.srv
+  Mission_srv.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -155,7 +155,7 @@ include_directories(
 
 add_executable(main_2022_beta src/main_2022_beta.cpp)
 target_link_libraries(main_2022_beta  ${catkin_LIBRARIES})
-add_dependencies(main_2022_beta ${main_2022_beta_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(main_2022_beta ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 #############
 ## Install ##

@@ -7,7 +7,7 @@
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GetPlan.h>
 #include <geometry_msgs/PoseStamped.h>
-#include <main_2022/mission.h>
+#include <main_2022/Mission_srv.h>
 
 #include <iostream>
 #include <stdlib.h>
@@ -359,7 +359,7 @@ public:
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
 
     // ROS Service Client
-    ros::ServiceClient _mission = nh.serviceClient<main_2022::mission>("mission"); // Mission Giving Service
+    ros::ServiceClient _mission = nh.serviceClient<main_2022::Mission_srv>("Mission"); // Mission Giving Service
 
 #if OPEN_POSITION_ADJUSTMENT
 
@@ -492,12 +492,12 @@ int main(int argc, char **argv)
                 else if (doing && !moving)
                 {
                     ROS_INFO("Doing Mission Now...");
-                    main_2022::mission next;
-                    next.request.missionType = mission_List[mission_num].get_missionType();
+                    main_2022::Mission_srv next;
+                    next.request.mission = mission_List[mission_num].get_missionType();
                     while (mainClass._mission.call(next))
                     {
                         int finishType;
-                        finishType = next.response.finishMission;
+                        finishType = next.response.missionary;
                         if (finishType)
                         {
                             doing = false;
