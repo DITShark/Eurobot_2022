@@ -484,7 +484,7 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                    // ROS_INFO("Waiting Now...");
+                    ROS_INFO("Waiting Now...");
                 }
                 break;
 
