@@ -126,6 +126,7 @@ const double INI_Z_YELLOW = -0.263;
 const double INI_W_YELLOW = 0.9646;
 
 const double POSITION_CORRECTION_ERROR = 10;
+const int MISSION_WAITTIME = 1500000;
 
 // Variable Define
 
@@ -220,7 +221,7 @@ public:
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
         clock_t start = clock();
-        while (clock() - start < 1500000 && MISSION_NODE_NOEXIST)
+        while (clock() - start < MISSION_WAITTIME && MISSION_NODE_NOEXIST)
         {
         }
         if (msg->data && moving && now_Mode)
@@ -386,7 +387,7 @@ int main(int argc, char **argv)
 
     // Script Reading
     ifstream inFile;
-    inFile.open("/home/ubuntu/eurobot_ros_ws/scriptBig.csv");
+    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
     if (inFile.fail())
     {
         cout << "Could Not Open File\n";
