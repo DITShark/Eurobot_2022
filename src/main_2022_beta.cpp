@@ -143,6 +143,7 @@ int now_Mode = 1;
 bool moving = false;
 bool doing = false;
 bool position_correction = false;
+bool finishMission = false;
 
 double position_x;
 double position_y;
@@ -388,6 +389,7 @@ int main(int argc, char **argv)
 {
     // ROS initial
     ros::init(argc, argv, "Main_Node_beta");
+    ros::Time startTime = ros::Time::now();
 
     // Node Handling Class Initialize
 
@@ -557,7 +559,12 @@ int main(int argc, char **argv)
                 break;
 
             case FINISH:
-                ROS_INFO("Finish All Mission");
+                if (!finishMission)
+                {
+                    cout << "Mission Time: " << ros::Time::now() - startTime << endl;
+                    ROS_INFO("Finish All Mission");
+                }
+
                 break;
             }
             break;
