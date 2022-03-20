@@ -133,6 +133,7 @@ const double POSITION_CORRECTION_ERROR = 10;
 int side_state; // 1 for yellow , 2 for purple
 int run_state;
 int mission_waitTime;
+int runWhichScript; // 0 for big , 1 for small
 
 int mission_num = 0;
 int goal_num = 0;
@@ -226,6 +227,7 @@ public:
         {
             while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
             {
+                cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
             }
         }
         if (msg->data && moving && now_Mode)
@@ -390,6 +392,7 @@ int main(int argc, char **argv)
     // Node Handling Class Initialize
 
     mainProgram mainClass;
+    mainClass.nh.getParam("/runWhichScript", runWhichScript);
 
     // Main Nide Update Frequency
 
@@ -397,7 +400,14 @@ int main(int argc, char **argv)
 
     // Script Reading
     ifstream inFile;
-    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+    if (!runWhichScript)
+    {
+        inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+    }
+    else
+    {
+        inFile.open("/home/ubuntu/Eurobot2022_ws/scriptSmall.csv");
+    }
     if (inFile.fail())
     {
         cout << "Could Not Open File\n";
@@ -447,7 +457,9 @@ int main(int argc, char **argv)
             switch (now_Status)
             {
             case STRATEGY:
+
                 mainClass.nh.getParam("/side_state", side_state);
+
                 if (side_state == '1')
                 {
                     position_x = INI_X_YELLOW;
