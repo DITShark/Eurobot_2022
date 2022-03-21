@@ -225,7 +225,7 @@ public:
 
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
-        if (msg->data && moving && now_Mode)
+        if (msg->data && moving)
         {
             if (mission_num == mission_List.size() - 1 && mission_List[mission_num].get_missionType() == 'X')
             {
@@ -254,10 +254,14 @@ public:
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         _target.publish(next_target);
                         moving = true;
+                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        cout << endl;
                     }
                     else
                     {
                         doing = true;
+                        ROS_INFO("Doing Mission Now... [ %c ]", mission_List[mission_num].get_missionType());
+                        cout << endl;
                         startMissionTime = clock();
                     }
                 }
@@ -400,6 +404,8 @@ int main(int argc, char **argv)
         mission_List.push_back(nextMission);
     }
 
+    int waitCount = 0;
+
     while (ros::ok())
     {
         switch (now_Mode)
@@ -452,11 +458,18 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         mainClass._target.publish(next_target);
                         moving = true;
+                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        cout << endl;
                     }
                 }
                 else
                 {
-                    ROS_INFO("Waiting Now...");
+                    if (waitCount++ > 50)
+                    {
+                        ROS_INFO("Waiting Now...");
+                        cout << endl;
+                        waitCount = 0;
+                    }
                 }
                 break;
 
@@ -466,14 +479,14 @@ int main(int argc, char **argv)
 
                 if (moving && !doing)
                 {
-                    ROS_INFO("Moving Now...");
-                    ROS_INFO("Position at x:[%f], y:[%f], z:[%f], w:[%f]", position_x, position_y, orientation_z, orientation_w);
+                    // ROS_INFO("Moving Now...");
+                    // ROS_INFO("Position at x:[%f], y:[%f], z:[%f], w:[%f]", position_x, position_y, orientation_z, orientation_w);
                 }
                 else if (doing && !moving && MISSION_NODE_NOEXIST)
                 {
                     if (clock() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
                     {
-                        cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
+                        // cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
                     }
                     else
                     {
@@ -496,12 +509,14 @@ int main(int argc, char **argv)
                             next_target.pose.orientation.w = mission_List[goal_num].get_w();
                             mainClass._target.publish(next_target);
                             moving = true;
+                            ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                            cout << endl;
                         }
                     }
                 }
                 else if (doing && !moving)
                 {
-                    cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
+                    // cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
                     main_2022::Mission_srv next;
                     next.request.mission = mission_List[mission_num].get_missionType();
                     while (mainClass._mission.call(next))
@@ -532,6 +547,8 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         mainClass._target.publish(next_target);
                         moving = true;
+                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        cout << endl;
                     }
                 }
                 break;
