@@ -150,6 +150,8 @@ double position_y;
 double orientation_z;
 double orientation_w;
 
+clock_t startMissionTime;
+
 geometry_msgs::PoseStamped next_target;
 geometry_msgs::Pose2D next_correction;
 
@@ -223,21 +225,9 @@ public:
 
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
     {
-        clock_t start = clock();
-        if (mission_List[mission_num].get_missionType() != 'X')
-        {
-            while (clock() - start < mission_waitTime && MISSION_NODE_NOEXIST)
-            {
-                cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
-            }
-        }
         if (msg->data && moving && now_Mode)
         {
             if (mission_num == mission_List.size() - 1 && mission_List[mission_num].get_missionType() == 'X')
-            {
-                now_Status++;
-            }
-            else if (mission_num == mission_List.size() - 1 && MISSION_NODE_NOEXIST)
             {
                 now_Status++;
             }
@@ -250,65 +240,25 @@ public:
                 if (!position_correction)
                 {
                     moving = false;
-                    if (mission_List[mission_num].get_missionType() == 'X' || MISSION_NODE_NOEXIST)
+                    if (mission_List[mission_num].get_missionType() == 'X')
                     {
                         mission_num++;
                         goal_num++;
-                        if (mission_List[mission_num].get_missionType() != '0')
+                        while (mission_List[goal_num].get_missionType() == '0')
                         {
-                            if (MISSION_NODE_NOEXIST)
-                            {
-                                while (mission_List[mission_num].get_missionType() != '0')
-                                {
-                                    if (mission_num == mission_List.size() - 1)
-                                    {
-                                        now_Status++;
-                                        break;
-                                    }
-                                    mission_num++;
-                                    goal_num++;
-                                }
-                                if (now_Status == 2)
-                                {
-                                    while (mission_List[goal_num].get_missionType() == '0')
-                                    {
-                                        goal_num++;
-                                    }
-                                    next_target.pose.position.x = mission_List[goal_num].get_x();
-                                    next_target.pose.position.y = mission_List[goal_num].get_y();
-                                    next_target.pose.orientation.z = mission_List[goal_num].get_z();
-                                    next_target.pose.orientation.w = mission_List[goal_num].get_w();
-                                    _target.publish(next_target);
-                                    moving = true;
-                                }
-                            }
-                            else
-                            {
-                                next_target.pose.position.x = mission_List[goal_num].get_x();
-                                next_target.pose.position.y = mission_List[goal_num].get_y();
-                                next_target.pose.orientation.z = mission_List[goal_num].get_z();
-                                next_target.pose.orientation.w = mission_List[goal_num].get_w();
-                                _target.publish(next_target);
-                                moving = true;
-                            }
+                            goal_num++;
                         }
-                        else
-                        {
-                            while (mission_List[goal_num].get_missionType() == '0')
-                            {
-                                goal_num++;
-                            }
-                            next_target.pose.position.x = mission_List[goal_num].get_x();
-                            next_target.pose.position.y = mission_List[goal_num].get_y();
-                            next_target.pose.orientation.z = mission_List[goal_num].get_z();
-                            next_target.pose.orientation.w = mission_List[goal_num].get_w();
-                            _target.publish(next_target);
-                            moving = true;
-                        }
+                        next_target.pose.position.x = mission_List[goal_num].get_x();
+                        next_target.pose.position.y = mission_List[goal_num].get_y();
+                        next_target.pose.orientation.z = mission_List[goal_num].get_z();
+                        next_target.pose.orientation.w = mission_List[goal_num].get_w();
+                        _target.publish(next_target);
+                        moving = true;
                     }
                     else
                     {
                         doing = true;
+                        startMissionTime = clock();
                     }
                 }
             }
@@ -389,7 +339,7 @@ int main(int argc, char **argv)
 {
     // ROS initial
     ros::init(argc, argv, "Main_Node_beta");
-    ros::Time startTime = ros::Time::now();
+    ros::Time initialTime = ros::Time::now();
 
     // Node Handling Class Initialize
 
@@ -449,7 +399,6 @@ int main(int argc, char **argv)
         mission nextMission(next_x, next_y, next_z, next_w, next_m);
         mission_List.push_back(nextMission);
     }
-    // mission_List.push_back(new mission(100,100,0,'X')));
 
     while (ros::ok())
     {
@@ -520,9 +469,39 @@ int main(int argc, char **argv)
                     ROS_INFO("Moving Now...");
                     ROS_INFO("Position at x:[%f], y:[%f], z:[%f], w:[%f]", position_x, position_y, orientation_z, orientation_w);
                 }
+                else if (doing && !moving && MISSION_NODE_NOEXIST)
+                {
+                    if (clock() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
+                    {
+                        cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
+                    }
+                    else
+                    {
+                        doing = false;
+                        if (mission_num == mission_List.size() - 1)
+                        {
+                            now_Status++;
+                        }
+                        else
+                        {
+                            mission_num++;
+                            goal_num++;
+                            while (mission_List[goal_num].get_missionType() == '0')
+                            {
+                                goal_num++;
+                            }
+                            next_target.pose.position.x = mission_List[goal_num].get_x();
+                            next_target.pose.position.y = mission_List[goal_num].get_y();
+                            next_target.pose.orientation.z = mission_List[goal_num].get_z();
+                            next_target.pose.orientation.w = mission_List[goal_num].get_w();
+                            mainClass._target.publish(next_target);
+                            moving = true;
+                        }
+                    }
+                }
                 else if (doing && !moving)
                 {
-                    ROS_INFO("Doing Mission Now...");
+                    cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
                     main_2022::Mission_srv next;
                     next.request.mission = mission_List[mission_num].get_missionType();
                     while (mainClass._mission.call(next))
@@ -555,14 +534,14 @@ int main(int argc, char **argv)
                         moving = true;
                     }
                 }
-
                 break;
 
             case FINISH:
                 if (!finishMission)
                 {
-                    cout << "Mission Time: " << ros::Time::now() - startTime << endl;
+                    cout << "Mission Time: " << ros::Time::now() - initialTime << endl;
                     ROS_INFO("Finish All Mission");
+                    finishMission = true;
                 }
 
                 break;
