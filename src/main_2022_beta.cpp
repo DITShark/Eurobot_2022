@@ -343,11 +343,11 @@ int main(int argc, char **argv)
 {
     // ROS initial
     ros::init(argc, argv, "Main_Node_beta");
-    ros::Time initialTime = ros::Time::now();
 
     // Node Handling Class Initialize
 
     mainProgram mainClass;
+    ros::Time initialTime = ros::Time::now();
     mainClass.nh.getParam("/runWhichScript", runWhichScript);
 
     // Main Nide Update Frequency
