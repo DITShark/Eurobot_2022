@@ -132,7 +132,7 @@ const double POSITION_CORRECTION_ERROR = 10;
 
 int side_state; // 1 for yellow , 2 for purple
 int run_state;
-int mission_waitTime;
+double mission_waitTime;
 int runWhichScript; // 0 for big , 1 for small
 
 int mission_num = 0;
