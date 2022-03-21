@@ -149,8 +149,7 @@ double position_x;
 double position_y;
 double orientation_z;
 double orientation_w;
-
-ros::Time startMissionTime;
+double startMissionTime;
 
 geometry_msgs::PoseStamped next_target;
 geometry_msgs::Pose2D next_correction;
@@ -262,7 +261,7 @@ public:
                         doing = true;
                         ROS_INFO("Doing Mission Now... [ %c ]", mission_List[mission_num].get_missionType());
                         cout << endl;
-                        startMissionTime = ros::Time::now();
+                        startMissionTime = ros::Time::now().toSec();
                     }
                 }
             }
@@ -485,7 +484,7 @@ int main(int argc, char **argv)
                 }
                 else if (doing && !moving && MISSION_NODE_NOEXIST)
                 {
-                    if (ros::Time::now() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
+                    if (ros::Time::now().toSec() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
                     {
                         // cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
                     }
