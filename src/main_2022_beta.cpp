@@ -254,7 +254,7 @@ public:
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         _target.publish(next_target);
                         moving = true;
-                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        ROS_INFO("1 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
                         cout << endl;
                     }
                     else
@@ -459,7 +459,7 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         mainClass._target.publish(next_target);
                         moving = true;
-                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        ROS_INFO("2 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
                         cout << endl;
                     }
                 }
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
                             next_target.pose.orientation.w = mission_List[goal_num].get_w();
                             mainClass._target.publish(next_target);
                             moving = true;
-                            ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                            ROS_INFO("3 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
                             cout << endl;
                         }
                     }
@@ -548,7 +548,7 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = mission_List[goal_num].get_w();
                         mainClass._target.publish(next_target);
                         moving = true;
-                        ROS_INFO("Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
+                        ROS_INFO("4 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
                         cout << endl;
                     }
                 }
