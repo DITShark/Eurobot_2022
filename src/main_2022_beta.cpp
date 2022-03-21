@@ -448,6 +448,7 @@ int main(int argc, char **argv)
                     }
                     else
                     {
+                        initialTime = ros::Time::now();
                         while (mission_List[goal_num].get_missionType() == '0')
                         {
                             goal_num++;
