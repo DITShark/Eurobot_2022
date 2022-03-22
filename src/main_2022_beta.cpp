@@ -259,6 +259,9 @@ public:
                     else
                     {
                         doing = true;
+                        std_msgs::Char mm;
+                        mm.data = mission_List[mission_num].get_missionType();
+                        _arm.publish(mm);
                         ROS_INFO("Doing Mission Now... [ %c ]", mission_List[mission_num].get_missionType());
                         cout << endl;
                         startMissionTime = ros::Time::now().toSec();
@@ -314,6 +317,7 @@ public:
     // ROS Topics Publishers
     ros::Publisher _target = nh.advertise<geometry_msgs::PoseStamped>("target", 1000); // Publish goal to controller
     ros::Publisher _StopOrNot = nh.advertise<std_msgs::Bool>("Stopornot", 1000);       // Publish emergency state to controller
+    ros::Publisher _arm = nh.advertise<std_msgs::Char>("arm_go_where", 1000);
 
     // ROS Topics Subscribers
     // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this);               // Get position from localization
@@ -521,6 +525,7 @@ int main(int argc, char **argv)
                     next.request.mission = mission_List[mission_num].get_missionType();
                     while (mainClass._mission.call(next))
                     {
+                        cout << "-" << endl;
                         int finishType;
                         finishType = next.response.missionary;
                         if (finishType)
