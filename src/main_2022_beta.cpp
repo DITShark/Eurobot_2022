@@ -155,6 +155,8 @@ geometry_msgs::PoseStamped next_target;
 geometry_msgs::Pose2D next_correction;
 
 vector<mission> mission_List;
+vector<int> missionTime_correct_Type;
+vector<int> missionTime_correct_Num;
 
 // Function Define
 
@@ -188,6 +190,18 @@ void checkPosError(mission real, mission target)
 }
 
 #endif
+
+void correctMissionTime(char missionC) // Create Rules for mission Wait Time
+{
+    for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
+    {
+        if (missionC == missionTime_correct_Type[i])
+        {
+            mission_waitTime = missionTime_correct_Num[i];
+            break;
+        }
+    }
+}
 
 // Node Handling Class Define
 
@@ -226,7 +240,7 @@ public:
     {
         if (msg->data && moving)
         {
-            if (mission_num == mission_List.size() - 1 && mission_List[mission_num].get_missionType() == 'X')
+            if (goal_num == mission_List.size() - 1 && mission_List[goal_num].get_missionType() == 'X')
             {
                 now_Status++;
             }
@@ -234,12 +248,12 @@ public:
             {
 
 #if OPEN_POSITION_ADJUSTMENT
-                checkPosError(new mission(x, y, theta, 'X'), mission_List[mission_num]);
+                checkPosError(new mission(x, y, theta, 'X'), mission_List[goal_num]);
 #endif
                 if (!position_correction)
                 {
                     moving = false;
-                    if (mission_List[mission_num].get_missionType() == 'X')
+                    if (mission_List[goal_num].get_missionType() == 'X')
                     {
                         mission_num++;
                         goal_num++;
@@ -260,11 +274,13 @@ public:
                     {
                         doing = true;
                         std_msgs::Char mm;
-                        mm.data = mission_List[mission_num].get_missionType();
+                        mm.data = mission_List[goal_num].get_missionType();
                         _arm.publish(mm);
-                        ROS_INFO("Doing Mission Now... [ %c ]", mission_List[mission_num].get_missionType());
+                        ROS_INFO("Doing Mission Now... [ %c ]", mission_List[goal_num].get_missionType());
                         cout << endl;
                         startMissionTime = ros::Time::now().toSec();
+                        nh.getParam("/mission_waitTime", mission_waitTime);
+                        correctMissionTime(mission_List[goal_num].get_missionType());
                     }
                 }
             }
@@ -353,7 +369,7 @@ int main(int argc, char **argv)
     ros::Time initialTime = ros::Time::now();
     mainClass.nh.getParam("/runWhichScript", runWhichScript);
 
-    // Main Nide Update Frequency
+    // Main Node Update Frequency
 
     ros::Rate rate(200);
 
@@ -362,6 +378,7 @@ int main(int argc, char **argv)
     if (!runWhichScript)
     {
         inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+        // inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
     }
     else
     {
@@ -436,6 +453,14 @@ int main(int argc, char **argv)
                 }
 
                 mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
+                mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
+                mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
+
+                for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
+                {
+                    ROS_INFO("Mission [%c] Correct to %d secs", missionTime_correct_Type[i], missionTime_correct_Num[i]);
+                }
+                cout << endl;
 
                 now_Status++;
                 break;
@@ -479,8 +504,6 @@ int main(int argc, char **argv)
 
             case RUN:
 
-                mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
-
                 if (moving && !doing)
                 {
                     // ROS_INFO("Moving Now...");
@@ -490,12 +513,12 @@ int main(int argc, char **argv)
                 {
                     if (ros::Time::now().toSec() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
                     {
-                        // cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
+                        // cout << "Doing Mission Now... [ " << mission_List[goal_num].get_missionType() << " ]" << endl;
                     }
                     else
                     {
                         doing = false;
-                        if (mission_num == mission_List.size() - 1)
+                        if (goal_num == mission_List.size() - 1)
                         {
                             now_Status++;
                         }
@@ -520,9 +543,9 @@ int main(int argc, char **argv)
                 }
                 else if (doing && !moving)
                 {
-                    // cout << "Doing Mission Now... [ " << mission_List[mission_num].get_missionType() << " ]" << endl;
+                    // cout << "Doing Mission Now... [ " << mission_List[goal_num].get_missionType() << " ]" << endl;
                     main_2022::Mission_srv next;
-                    next.request.mission = mission_List[mission_num].get_missionType();
+                    next.request.mission = mission_List[goal_num].get_missionType();
                     while (mainClass._mission.call(next))
                     {
                         cout << "-" << endl;
@@ -534,7 +557,7 @@ int main(int argc, char **argv)
                             break;
                         }
                     }
-                    if (mission_num == mission_List.size() - 1)
+                    if (goal_num == mission_List.size() - 1)
                     {
                         now_Status++;
                     }
