@@ -2,7 +2,9 @@
         <param name="/run_state" type="int" value="0" />
         <param name="/side_state" type="int" value="1" />
         <param name="/mission_waitTime" type="double" value="1" />
-        <param name="/runWhichScript" type="int" value="1" />
+        <param name="/runWhichScript" type="int" value="0" />
+        <rosparam param="/missionTime_correct_Type">[]</rosparam>
+        <rosparam param="/missionTime_correct_Num">[]</rosparam>
     <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
     </node>
 </launch>
