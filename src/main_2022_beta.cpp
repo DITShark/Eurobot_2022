@@ -4,6 +4,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Char.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Float32.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GetPlan.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -333,7 +334,8 @@ public:
     // ROS Topics Publishers
     ros::Publisher _target = nh.advertise<geometry_msgs::PoseStamped>("target", 1000); // Publish goal to controller
     ros::Publisher _StopOrNot = nh.advertise<std_msgs::Bool>("Stopornot", 1000);       // Publish emergency state to controller
-    ros::Publisher _arm = nh.advertise<std_msgs::Char>("arm_go_where", 1000);
+    ros::Publisher _arm = nh.advertise<std_msgs::Char>("arm_go_where", 1000);          // Publish mission to mission
+    ros::Publisher _time = nh.advertise<std_msgs::Float32>("total_Time", 1000);        // Publish total Time
 
     // ROS Topics Subscribers
     // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this);               // Get position from localization
@@ -584,7 +586,10 @@ int main(int argc, char **argv)
             case FINISH:
                 if (!finishMission)
                 {
-                    cout << "Mission Time: " << ros::Time::now() - initialTime << endl;
+                    std_msgs::Float32 tt;
+                    tt.data = ros::Time::now().toSec() - initialTime.toSec();
+                    cout << "Mission Time: " << tt.data << endl;
+                    mainClass._time.publish(tt);
                     ROS_INFO("Finish All Mission");
                     finishMission = true;
                 }
