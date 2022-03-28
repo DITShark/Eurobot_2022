@@ -288,10 +288,6 @@ public:
         }
     }
 
-    void resistance_callback(const std_msgs::Int32::ConstPtr &msg)
-    {
-    }
-
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
     {
         res.plan.poses.clear();
@@ -342,7 +338,6 @@ public:
     ros::Subscriber _globalFilter = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("ekf_pose", 1000, &mainProgram::position_callback, this); // Get position from localization Lu
     ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);                   // Get emergency state from lidar
     ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
-    ros::Subscriber _resistance = nh.subscribe<std_msgs::Int32>("resistance", 1000, &mainProgram::resistance_callback, this);                        // Get resistor from mission
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
@@ -375,57 +370,10 @@ int main(int argc, char **argv)
 
     ros::Rate rate(200);
 
-    // Script Reading
     ifstream inFile;
-    if (!runWhichScript)
-    {
-        inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
-        // inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
-    }
-    else
-    {
-        inFile.open("/home/ubuntu/Eurobot2022_ws/scriptSmall.csv");
-    }
-    if (inFile.fail())
-    {
-        cout << "Could Not Open File\n";
-    }
     string value;
     string line;
     string field;
-    double next_x;
-    double next_y;
-    double next_z;
-    double next_w;
-    char next_m;
-    while (getline(inFile, line))
-    {
-        istringstream sin(line);
-        getline(sin, field, ',');
-        next_x = atof(field.c_str());
-        // cout << next_x << " ";
-
-        getline(sin, field, ',');
-        next_y = atof(field.c_str());
-        // cout << next_y << " ";
-
-        getline(sin, field, ',');
-        next_z = atof(field.c_str());
-        // cout << next_z << " ";
-
-        getline(sin, field, ',');
-        next_w = atof(field.c_str());
-        // cout << next_w << " ";
-
-        getline(sin, field);
-        const char *cstr = field.c_str();
-        char b = *cstr;
-        next_m = b;
-        // cout << b << endl;
-        mission nextMission(next_x, next_y, next_z, next_w, next_m);
-        mission_List.push_back(nextMission);
-    }
-
     int waitCount = 0;
 
     while (ros::ok())
@@ -439,14 +387,14 @@ int main(int argc, char **argv)
 
                 mainClass.nh.getParam("/side_state", side_state);
 
-                if (side_state == '1')
+                if (side_state == 1)
                 {
                     position_x = INI_X_YELLOW;
                     position_y = INI_Y_YELLOW;
                     orientation_z = INI_Z_YELLOW;
                     orientation_w = INI_W_YELLOW;
                 }
-                else if (side_state == '2')
+                else if (side_state == 2)
                 {
                     position_x = INI_X_PURPLE;
                     position_y = INI_Y_PURPLE;
@@ -454,10 +402,67 @@ int main(int argc, char **argv)
                     orientation_w = INI_W_PURPLE;
                 }
 
+                // Script Reading
+
+                if (!runWhichScript)
+                {
+                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+                    // inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
+                }
+                else
+                {
+                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptSmall.csv");
+                }
+                if (inFile.fail())
+                {
+                    cout << "Could Not Open File\n";
+                }
+                double next_x;
+                double next_y;
+                double next_z;
+                double next_w;
+                char next_m;
+                while (getline(inFile, line))
+                {
+                    istringstream sin(line);
+                    getline(sin, field, ',');
+                    next_x = atof(field.c_str());
+                    // cout << next_x << " ";
+
+                    getline(sin, field, ',');
+                    next_y = atof(field.c_str());
+                    // cout << next_y << " ";
+
+                    getline(sin, field, ',');
+                    next_z = atof(field.c_str());
+                    // cout << next_z << " ";
+
+                    getline(sin, field, ',');
+                    next_w = atof(field.c_str());
+                    // cout << next_w << " ";
+
+                    getline(sin, field);
+                    const char *cstr = field.c_str();
+                    char b = *cstr;
+                    next_m = b;
+                    // cout << b << endl;
+                    if (side_state == 1)
+                    {
+                        mission nextMission(next_x, next_y, next_z, next_w, next_m);
+                        mission_List.push_back(nextMission);
+                    }
+                    else if (side_state == 2)
+                    {
+                        mission nextMission(next_x, 3 - next_y, -next_z, next_w, next_m);
+                        mission_List.push_back(nextMission);
+                    }
+                }
+
                 mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
 
+                cout << endl;
                 for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
                 {
                     ROS_INFO("Mission [%c] Correct to %d secs", missionTime_correct_Type[i], missionTime_correct_Num[i]);
