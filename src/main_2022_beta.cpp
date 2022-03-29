@@ -5,6 +5,7 @@
 #include <std_msgs/Char.h>
 #include <std_msgs/Int32.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Float32MultiArray.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/GetPlan.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -37,6 +38,73 @@ enum Mode
 
 // Class Define
 
+class randomSample
+{
+private:
+    double x;
+    double y;
+    double z;
+    double roll;
+    double pitch;
+    double yaw;
+
+public:
+    randomSample()
+    {
+        this->x = -1;
+        this->y = -1;
+        this->z = -1;
+        this->roll = -1;
+        this->pitch = -1;
+        this->yaw = -1;
+    }
+
+    randomSample(double x, double y, double z, double roll, double pitch, double yaw)
+    {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+        this->roll = roll;
+        this->pitch = pitch;
+        this->yaw = yaw;
+    };
+
+    void update(double x, double y, double z, double roll, double pitch, double yaw)
+    {
+        this->x = x;
+        this->y = y;
+        this->z = z;
+        this->roll = roll;
+        this->pitch = pitch;
+        this->yaw = yaw;
+    }
+
+    double get_x()
+    {
+        return x;
+    }
+    double get_y()
+    {
+        return y;
+    }
+    double get_z()
+    {
+        return z;
+    }
+    double get_roll()
+    {
+        return roll;
+    }
+    double get_pitch()
+    {
+        return pitch;
+    }
+    double get_yaw()
+    {
+        return yaw;
+    }
+};
+
 class mission
 {
 private:
@@ -45,16 +113,6 @@ private:
     double z;
     double w;
     char missionType;
-
-#if 0
-    /*
-    Mission Type List:
-
-        'X' for No Mission
-        '0' for Non stop Point
-
-    */
-#endif
 
 public:
     mission(double x, double y, double z, double w, char missionType)
@@ -65,6 +123,7 @@ public:
         this->w = w;
         this->missionType = missionType;
     };
+
     void update(double x, double y, double z, double w, char missionType)
     {
         if (x != -1)
@@ -88,6 +147,7 @@ public:
             this->missionType = missionType;
         }
     }
+
     double get_x()
     {
         return x;
@@ -114,6 +174,7 @@ public:
 
 const bool OPEN_POSITION_ADJUSTMENT = false;
 const bool MISSION_NODE_NOEXIST = true;
+const bool RANDOM_SAMPLE = false;
 
 // Adjustment Variable Define
 
@@ -158,6 +219,10 @@ geometry_msgs::Pose2D next_correction;
 vector<mission> mission_List;
 vector<int> missionTime_correct_Type;
 vector<int> missionTime_correct_Num;
+
+randomSample randomBlue;
+randomSample randomGreen;
+randomSample randomRed;
 
 // Function Define
 
@@ -288,6 +353,10 @@ public:
         }
     }
 
+    void cameraInfo_callback(const std_msgs::Float32MultiArray::ConstPtr &msg)
+    {
+    }
+
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
     {
         res.plan.poses.clear();
@@ -338,6 +407,7 @@ public:
     ros::Subscriber _globalFilter = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("ekf_pose", 1000, &mainProgram::position_callback, this); // Get position from localization Lu
     ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);                   // Get emergency state from lidar
     ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
+    ros::Subscriber _cameraInfo = nh.subscribe<std_msgs::Float32MultiArray>("Sample_position", 1000, &mainProgram::cameraInfo_callback, this);
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
