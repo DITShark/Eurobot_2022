@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <tf/tf.h>
+#include <tf2/LinearMath/Quaternion.h>
 #include <geometry_msgs/Pose2D.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Char.h>
@@ -44,39 +45,23 @@ private:
     double x;
     double y;
     double z;
-    double roll;
-    double pitch;
-    double yaw;
+    double w;
 
 public:
-    randomSample()
-    {
-        this->x = -1;
-        this->y = -1;
-        this->z = -1;
-        this->roll = -1;
-        this->pitch = -1;
-        this->yaw = -1;
-    }
-
-    randomSample(double x, double y, double z, double roll, double pitch, double yaw)
+    randomSample(double x, double y, double z, double w)
     {
         this->x = x;
         this->y = y;
         this->z = z;
-        this->roll = roll;
-        this->pitch = pitch;
-        this->yaw = yaw;
+        this->w = w;
     };
 
-    void update(double x, double y, double z, double roll, double pitch, double yaw)
+    void update(double x, double y, double z, double w)
     {
         this->x = x;
         this->y = y;
         this->z = z;
-        this->roll = roll;
-        this->pitch = pitch;
-        this->yaw = yaw;
+        this->w = w;
     }
 
     double get_x()
@@ -91,17 +76,9 @@ public:
     {
         return z;
     }
-    double get_roll()
+    double get_w()
     {
-        return roll;
-    }
-    double get_pitch()
-    {
-        return pitch;
-    }
-    double get_yaw()
-    {
-        return yaw;
+        return w;
     }
 };
 
@@ -173,7 +150,6 @@ public:
 // Program Adjustment
 
 const bool OPEN_POSITION_ADJUSTMENT = false;
-const bool MISSION_NODE_NOEXIST = true;
 const bool RANDOM_SAMPLE = false;
 
 // Adjustment Variable Define
@@ -220,9 +196,9 @@ vector<mission> mission_List;
 vector<int> missionTime_correct_Type;
 vector<int> missionTime_correct_Num;
 
-randomSample randomBlue;
-randomSample randomGreen;
-randomSample randomRed;
+randomSample randomBlue(1.0532, 0.9752, 0.237214, 0.971457);
+randomSample randomGreen(1.2908, 0.965, -1, 0);
+randomSample randomRed(1.2908, 0.965, -0.86603, 0.5);
 
 // Function Define
 
@@ -355,6 +331,19 @@ public:
 
     void cameraInfo_callback(const std_msgs::Float32MultiArray::ConstPtr &msg)
     {
+        tf2::Quaternion angularChange;
+
+        angularChange.setRPY(msg->data.at(3), msg->data.at(4), msg->data.at(5));
+        angularChange = angularChange.normalize();
+        randomBlue.update(msg->data.at(0), msg->data.at(1), angularChange[2], angularChange[3]);
+
+        angularChange.setRPY(msg->data.at(9), msg->data.at(10), msg->data.at(11));
+        angularChange = angularChange.normalize();
+        randomGreen.update(msg->data.at(6), msg->data.at(7), angularChange[2], angularChange[3]);
+
+        angularChange.setRPY(msg->data.at(15), msg->data.at(16), msg->data.at(17));
+        angularChange = angularChange.normalize();
+        randomRed.update(msg->data.at(12), msg->data.at(13), angularChange[2], angularChange[3]);
     }
 
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
@@ -407,13 +396,13 @@ public:
     ros::Subscriber _globalFilter = nh.subscribe<geometry_msgs::PoseWithCovarianceStamped>("ekf_pose", 1000, &mainProgram::position_callback, this); // Get position from localization Lu
     ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);                   // Get emergency state from lidar
     ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
-    ros::Subscriber _cameraInfo = nh.subscribe<std_msgs::Float32MultiArray>("Sample_position", 1000, &mainProgram::cameraInfo_callback, this);
+    ros::Subscriber _cameraInfo = nh.subscribe<std_msgs::Float32MultiArray>("Sample_position", 1000, &mainProgram::cameraInfo_callback, this);       // Get Sample Information from Camera
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
 
     // ROS Service Client
-    ros::ServiceClient _mission = nh.serviceClient<main_2022::Mission_srv>("Mission"); // Mission Giving Service
+    // ros::ServiceClient _mission = nh.serviceClient<main_2022::Mission_srv>("Mission"); // Mission Giving Service
 
 #if OPEN_POSITION_ADJUSTMENT
 
@@ -476,8 +465,8 @@ int main(int argc, char **argv)
 
                 if (!runWhichScript)
                 {
-                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
-                    // inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
+                    // inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+                    inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
                 }
                 else
                 {
@@ -511,11 +500,28 @@ int main(int argc, char **argv)
                     next_w = atof(field.c_str());
                     // cout << next_w << " ";
 
-                    getline(sin, field);
+                    getline(sin, field, ',');
                     const char *cstr = field.c_str();
                     char b = *cstr;
+                    if (strcmp(field.c_str(), "Z1") == 0 && !RANDOM_SAMPLE)
+                    {
+                        b = 'B';
+                    }
+                    else if (strcmp(field.c_str(), "Z2") == 0 && !RANDOM_SAMPLE)
+                    {
+                        b = 'R';
+                    }
+                    else if (strcmp(field.c_str(), "Z3") == 0 && !RANDOM_SAMPLE)
+                    {
+                        b = 'G';
+                    }
                     next_m = b;
-                    // cout << b << endl;
+                    // if (next_m != '0')
+                    // {
+                    //     cout << next_m << endl;
+                    // }
+                    // cout << next_m << endl;
+
                     if (side_state == 1)
                     {
                         mission nextMission(next_x, next_y, next_z, next_w, next_m);
@@ -586,9 +592,9 @@ int main(int argc, char **argv)
                     // ROS_INFO("Moving Now...");
                     // ROS_INFO("Position at x:[%f], y:[%f], z:[%f], w:[%f]", position_x, position_y, orientation_z, orientation_w);
                 }
-                else if (doing && !moving && MISSION_NODE_NOEXIST)
+                else if (doing && !moving)
                 {
-                    if (ros::Time::now().toSec() - startMissionTime < mission_waitTime && MISSION_NODE_NOEXIST)
+                    if (ros::Time::now().toSec() - startMissionTime < mission_waitTime)
                     {
                         // cout << "Doing Mission Now... [ " << mission_List[goal_num].get_missionType() << " ]" << endl;
                     }
@@ -616,44 +622,6 @@ int main(int argc, char **argv)
                             ROS_INFO("3 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
                             cout << endl;
                         }
-                    }
-                }
-                else if (doing && !moving)
-                {
-                    // cout << "Doing Mission Now... [ " << mission_List[goal_num].get_missionType() << " ]" << endl;
-                    main_2022::Mission_srv next;
-                    next.request.mission = mission_List[goal_num].get_missionType();
-                    while (mainClass._mission.call(next))
-                    {
-                        cout << "-" << endl;
-                        int finishType;
-                        finishType = next.response.missionary;
-                        if (finishType)
-                        {
-                            doing = false;
-                            break;
-                        }
-                    }
-                    if (goal_num == mission_List.size() - 1)
-                    {
-                        now_Status++;
-                    }
-                    else
-                    {
-                        mission_num++;
-                        goal_num++;
-                        while (mission_List[goal_num].get_missionType() == '0')
-                        {
-                            goal_num++;
-                        }
-                        next_target.pose.position.x = mission_List[goal_num].get_x();
-                        next_target.pose.position.y = mission_List[goal_num].get_y();
-                        next_target.pose.orientation.z = mission_List[goal_num].get_z();
-                        next_target.pose.orientation.w = mission_List[goal_num].get_w();
-                        mainClass._target.publish(next_target);
-                        moving = true;
-                        ROS_INFO("4 Moving to x:[%f] y:[%f]", mission_List[goal_num].get_x(), mission_List[goal_num].get_y());
-                        cout << endl;
                     }
                 }
                 break;
