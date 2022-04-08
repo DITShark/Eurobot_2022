@@ -463,18 +463,25 @@ int main(int argc, char **argv)
 
                 // Script Reading
 
+                cout << endl;
                 if (!runWhichScript)
                 {
-                    // inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
-                    inFile.open("/home/sharkkk/Eurobot_2022_ws/scriptBig.csv");
+                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+                    cout << "File << Eurobot2022_ws/scriptBig.csv >> ";
                 }
                 else
                 {
-                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptSmall.csv");
+                    inFile.open("/home/ubuntu/eurobot_ros_ws/scriptSmall.csv");
+                    cout << "File << eurobot_ros_ws/scriptSmall.csv >> ";
                 }
+
                 if (inFile.fail())
                 {
-                    cout << "Could Not Open File\n";
+                    cout << "Could Not Open !" << endl;
+                }
+                else
+                {
+                    cout << "Open Successfully !" << endl;
                 }
                 double next_x;
                 double next_y;
