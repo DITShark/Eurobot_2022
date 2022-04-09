@@ -12,6 +12,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <main_2022/Mission_srv.h>
+#include <ros/package.h>
 
 #include <iostream>
 #include <stdlib.h>
@@ -489,6 +490,7 @@ int main(int argc, char **argv)
     string value;
     string line;
     string field;
+    string packagePath;
     int waitCount = 0;
 
     while (ros::ok())
@@ -519,10 +521,12 @@ int main(int argc, char **argv)
 
                 // Script Reading
 
+                packagePath = ros::package::getPath("main_2022");
+
                 cout << endl;
                 if (!runWhichScript)
                 {
-                    inFile.open("/home/ubuntu/Eurobot2022_ws/scriptBig.csv");
+                    inFile.open(packagePath + "/include/scriptBig.csv");
                     cout << "File << Eurobot2022_ws/scriptBig.csv >> ";
                 }
                 else
@@ -550,19 +554,19 @@ int main(int argc, char **argv)
                     istringstream sin(line);
                     getline(sin, field, ',');
                     next_x = atof(field.c_str());
-                    // cout << next_x << " ";
+                    cout << next_x << " ";
 
                     getline(sin, field, ',');
                     next_y = atof(field.c_str());
-                    // cout << next_y << " ";
+                    cout << next_y << " ";
 
                     getline(sin, field, ',');
                     next_z = atof(field.c_str());
-                    // cout << next_z << " ";
+                    cout << next_z << " ";
 
                     getline(sin, field, ',');
                     next_w = atof(field.c_str());
-                    // cout << next_w << " ";
+                    cout << next_w << " ";
 
                     getline(sin, field, ',');
                     const char *cstr = field.c_str();
@@ -585,7 +589,7 @@ int main(int argc, char **argv)
                     // {
                     //     cout << next_m << endl;
                     // }
-                    // cout << next_m << endl;
+                    cout << next_m << endl;
 
                     if (side_state == 1)
                     {
