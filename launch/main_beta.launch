@@ -3,8 +3,8 @@
         <param name="/side_state" type="int" value="1" />
         <param name="/mission_waitTime" type="double" value="1" />
         <param name="/runWhichScript" type="int" value="0" />
-        <rosparam param="/missionTime_correct_Type">[72,83,81]</rosparam>
-        <rosparam param="/missionTime_correct_Num">[2,3,2]</rosparam>
+        <rosparam param="/missionTime_correct_Type">[72,83,81,65,66,70,71,82]</rosparam>
+        <rosparam param="/missionTime_correct_Num">[1.5,2.5,1.5,0.8,0.8,0.8,0.8,0.8]</rosparam>
     <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
     </node>
 </launch>
