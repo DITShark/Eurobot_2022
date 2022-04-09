@@ -101,28 +101,17 @@ public:
         this->missionType = missionType;
     };
 
-    void update(double x, double y, double z, double w, char missionType)
+    void update(randomSample update)
     {
-        if (x != -1)
-        {
-            this->x = x;
-        }
-        if (y != -1)
-        {
-            this->y = y;
-        }
-        if (z != -1)
-        {
-            this->z = z;
-        }
-        if (w != -1)
-        {
-            this->w = w;
-        }
-        if (missionType != -1)
-        {
-            this->missionType = missionType;
-        }
+        this->x = update.get_x();
+        this->y = update.get_y();
+        this->z = update.get_z();
+        this->w = update.get_w();
+    }
+
+    void updateMission(char update)
+    {
+        this->missionType = update;
     }
 
     double get_x()
@@ -154,8 +143,8 @@ const bool RANDOM_SAMPLE = false;
 
 // Adjustment Variable Define
 
-const double INI_X_PURPLE = 0;
-const double INI_Y_PURPLE = 0;
+const double INI_X_PURPLE = 2.168;
+const double INI_Y_PURPLE = 0.257;
 const double INI_Z_PURPLE = 0;
 const double INI_W_PURPLE = 0;
 
@@ -194,11 +183,15 @@ geometry_msgs::Pose2D next_correction;
 
 vector<mission> mission_List;
 vector<int> missionTime_correct_Type;
-vector<int> missionTime_correct_Num;
+vector<double> missionTime_correct_Num;
 
-randomSample randomBlue(1.0532, 0.9752, 0.237214, 0.971457);
-randomSample randomGreen(1.2908, 0.965, -1, 0);
-randomSample randomRed(1.2908, 0.965, -0.86603, 0.5);
+randomSample random_blue(1.265, 0.975, 0.237214, 0.971457);
+randomSample random_green(1.475, 0.865, -1, 0);
+randomSample random_red(1.475, 1.085, -0.86603, 0.5);
+
+bool do_random_blue = true;
+bool do_random_green = true;
+bool do_random_red = true;
 
 // Function Define
 
@@ -245,6 +238,54 @@ void correctMissionTime(char missionC) // Create Rules for mission Wait Time
     }
 }
 
+void updateRandomRoute(mission updateM)
+{
+    double smallestX = 2;
+    int updateWhich = 0;
+    if (do_random_blue && smallestX > random_blue.get_x())
+    {
+        smallestX = random_blue.get_x();
+        updateWhich = 1;
+    }
+    if (do_random_green && smallestX > random_green.get_x())
+    {
+        smallestX = random_green.get_x();
+        updateWhich = 2;
+    }
+    if (do_random_red && smallestX > random_red.get_x())
+    {
+        smallestX = random_red.get_x();
+        updateWhich = 3;
+    }
+
+    if (updateWhich == 1)
+    {
+        do_random_blue = false;
+        updateM.update(random_blue);
+        updateM.updateMission('B');
+    }
+    else if (updateWhich == 2)
+    {
+        do_random_green = false;
+        updateM.update(random_green);
+        updateM.updateMission('G');
+    }
+    else if (updateWhich == 3)
+    {
+        do_random_red = false;
+        updateM.update(random_red);
+        updateM.updateMission('R');
+    }
+    else
+    {
+        while (mission_List[goal_num].get_missionType() == 'Z')
+        {
+            mission_num++;
+            goal_num++;
+        }
+    }
+}
+
 // Node Handling Class Define
 
 class mainProgram
@@ -262,20 +303,20 @@ public:
 
     void emergency_callback(const std_msgs::Bool::ConstPtr &msg)
     {
-        if (msg->data)
-        {
-            now_Mode = 0;
-            std_msgs::Bool publisher;
-            publisher.data = true;
-            _StopOrNot.publish(publisher);
-        }
-        else
-        {
-            now_Mode = 1;
-            std_msgs::Bool publisher;
-            publisher.data = false;
-            _StopOrNot.publish(publisher);
-        }
+        // if (msg->data)
+        // {
+        //     now_Mode = 0;
+        //     std_msgs::Bool publisher;
+        //     publisher.data = true;
+        //     _StopOrNot.publish(publisher);
+        // }
+        // else
+        // {
+        //     now_Mode = 1;
+        //     std_msgs::Bool publisher;
+        //     publisher.data = false;
+        //     _StopOrNot.publish(publisher);
+        // }
     }
 
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
@@ -302,6 +343,10 @@ public:
                         while (mission_List[goal_num].get_missionType() == '0')
                         {
                             goal_num++;
+                        }
+                        if (mission_List[goal_num].get_missionType() == 'Z')
+                        {
+                            updateRandomRoute(mission_List[goal_num]);
                         }
                         next_target.pose.position.x = mission_List[goal_num].get_x();
                         next_target.pose.position.y = mission_List[goal_num].get_y();
@@ -331,19 +376,30 @@ public:
 
     void cameraInfo_callback(const std_msgs::Float32MultiArray::ConstPtr &msg)
     {
-        tf2::Quaternion angularChange;
-
-        angularChange.setRPY(msg->data.at(3), msg->data.at(4), msg->data.at(5));
-        angularChange = angularChange.normalize();
-        randomBlue.update(msg->data.at(0), msg->data.at(1), angularChange[2], angularChange[3]);
-
-        angularChange.setRPY(msg->data.at(9), msg->data.at(10), msg->data.at(11));
-        angularChange = angularChange.normalize();
-        randomGreen.update(msg->data.at(6), msg->data.at(7), angularChange[2], angularChange[3]);
-
-        angularChange.setRPY(msg->data.at(15), msg->data.at(16), msg->data.at(17));
-        angularChange = angularChange.normalize();
-        randomRed.update(msg->data.at(12), msg->data.at(13), angularChange[2], angularChange[3]);
+        if (msg->data.at(4))
+        {
+            random_blue.update(msg->data.at(0) - 0.16, msg->data.at(1), -1, -1);
+        }
+        else
+        {
+            do_random_blue = false;
+        }
+        if (msg->data.at(9))
+        {
+            random_green.update(msg->data.at(5) - 0.16, msg->data.at(6), -1, -1);
+        }
+        else
+        {
+            do_random_green = false;
+        }
+        if (msg->data.at(14))
+        {
+            random_red.update(msg->data.at(10) - 0.16, msg->data.at(11), -1, -1);
+        }
+        else
+        {
+            do_random_red = false;
+        }
     }
 
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
@@ -483,6 +539,7 @@ int main(int argc, char **argv)
                 {
                     cout << "Open Successfully !" << endl;
                 }
+
                 double next_x;
                 double next_y;
                 double next_z;
@@ -523,6 +580,7 @@ int main(int argc, char **argv)
                         b = 'G';
                     }
                     next_m = b;
+
                     // if (next_m != '0')
                     // {
                     //     cout << next_m << endl;
@@ -548,7 +606,7 @@ int main(int argc, char **argv)
                 cout << endl;
                 for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
                 {
-                    ROS_INFO("Mission [%c] Correct to %d secs", missionTime_correct_Type[i], missionTime_correct_Num[i]);
+                    ROS_INFO("Mission [%c] Correct to %f secs", missionTime_correct_Type[i], missionTime_correct_Num[i]);
                 }
                 cout << endl;
 
