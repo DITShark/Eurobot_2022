@@ -480,7 +480,6 @@ int main(int argc, char **argv)
 
     mainProgram mainClass;
     ros::Time initialTime = ros::Time::now();
-    mainClass.nh.getParam("/runWhichScript", runWhichScript);
 
     // Main Node Update Frequency
 
@@ -490,7 +489,7 @@ int main(int argc, char **argv)
     string value;
     string line;
     string field;
-    string packagePath;
+    string packagePath = ros::package::getPath("main_2022");
     int waitCount = 0;
 
     while (ros::ok())
@@ -521,19 +520,9 @@ int main(int argc, char **argv)
 
                 // Script Reading
 
-                packagePath = ros::package::getPath("main_2022");
-
                 cout << endl;
-                if (!runWhichScript)
-                {
-                    inFile.open(packagePath + "/include/scriptBig.csv");
-                    cout << "File << Eurobot2022_ws/scriptBig.csv >> ";
-                }
-                else
-                {
-                    inFile.open("/home/ubuntu/eurobot_ros_ws/scriptSmall.csv");
-                    cout << "File << eurobot_ros_ws/scriptSmall.csv >> ";
-                }
+                inFile.open(packagePath + "/include/scriptBig.csv");
+                cout << "<< scriptBig.csv >> ";
 
                 if (inFile.fail())
                 {
@@ -543,6 +532,8 @@ int main(int argc, char **argv)
                 {
                     cout << "Open Successfully !" << endl;
                 }
+
+                cout << endl;
 
                 double next_x;
                 double next_y;
@@ -554,19 +545,19 @@ int main(int argc, char **argv)
                     istringstream sin(line);
                     getline(sin, field, ',');
                     next_x = atof(field.c_str());
-                    cout << next_x << " ";
+                    // cout << next_x << " ";
 
                     getline(sin, field, ',');
                     next_y = atof(field.c_str());
-                    cout << next_y << " ";
+                    // cout << next_y << " ";
 
                     getline(sin, field, ',');
                     next_z = atof(field.c_str());
-                    cout << next_z << " ";
+                    // cout << next_z << " ";
 
                     getline(sin, field, ',');
                     next_w = atof(field.c_str());
-                    cout << next_w << " ";
+                    // cout << next_w << " ";
 
                     getline(sin, field, ',');
                     const char *cstr = field.c_str();
@@ -589,7 +580,8 @@ int main(int argc, char **argv)
                     // {
                     //     cout << next_m << endl;
                     // }
-                    cout << next_m << endl;
+
+                    // cout << next_m << endl;
 
                     if (side_state == 1)
                     {
