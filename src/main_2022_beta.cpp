@@ -59,10 +59,22 @@ public:
 
     void update(double x, double y, double z, double w)
     {
-        this->x = x;
-        this->y = y;
-        this->z = z;
-        this->w = w;
+        if (x != -1)
+        {
+            this->x = x;
+        }
+        if (y != -1)
+        {
+            this->y = y;
+        }
+        if (z != -1)
+        {
+            this->z = z;
+        }
+        if (w != -1)
+        {
+            this->w = w;
+        }
     }
 
     double get_x()
@@ -140,7 +152,7 @@ public:
 // Program Adjustment
 
 const bool OPEN_POSITION_ADJUSTMENT = false;
-const bool RANDOM_SAMPLE = false;
+const bool RANDOM_SAMPLE = true;
 
 // Adjustment Variable Define
 
@@ -161,7 +173,6 @@ const double POSITION_CORRECTION_ERROR = 10;
 int side_state; // 1 for yellow , 2 for purple
 int run_state;
 double mission_waitTime;
-int runWhichScript; // 0 for big , 1 for small
 
 int mission_num = 0;
 int goal_num = 0;
@@ -187,8 +198,8 @@ vector<int> missionTime_correct_Type;
 vector<double> missionTime_correct_Num;
 
 randomSample random_blue(1.265, 0.975, 0.237214, 0.971457);
-randomSample random_green(1.475, 0.865, -1, 0);
-randomSample random_red(1.475, 1.085, -0.86603, 0.5);
+randomSample random_green(1.475, 0.865, 0.9659258, 0.258819);
+randomSample random_red(1.475, 1.085, -0.7071068, 0.7071068);
 
 bool do_random_blue = true;
 bool do_random_green = true;
@@ -239,7 +250,7 @@ void correctMissionTime(char missionC) // Create Rules for mission Wait Time
     }
 }
 
-void updateRandomRoute(mission updateM)
+void updateRandomRoute(mission *updateM)
 {
     double smallestX = 2;
     int updateWhich = 0;
@@ -262,20 +273,20 @@ void updateRandomRoute(mission updateM)
     if (updateWhich == 1)
     {
         do_random_blue = false;
-        updateM.update(random_blue);
-        updateM.updateMission('B');
+        updateM->update(random_blue);
+        updateM->updateMission('B');
     }
     else if (updateWhich == 2)
     {
         do_random_green = false;
-        updateM.update(random_green);
-        updateM.updateMission('G');
+        updateM->update(random_green);
+        updateM->updateMission('G');
     }
     else if (updateWhich == 3)
     {
         do_random_red = false;
-        updateM.update(random_red);
-        updateM.updateMission('R');
+        updateM->update(random_red);
+        updateM->updateMission('R');
     }
     else
     {
@@ -347,7 +358,7 @@ public:
                         }
                         if (mission_List[goal_num].get_missionType() == 'Z')
                         {
-                            updateRandomRoute(mission_List[goal_num]);
+                            updateRandomRoute(&mission_List[goal_num]);
                         }
                         next_target.pose.position.x = mission_List[goal_num].get_x();
                         next_target.pose.position.y = mission_List[goal_num].get_y();
@@ -379,27 +390,27 @@ public:
     {
         if (msg->data.at(4))
         {
-            random_blue.update(msg->data.at(0) - 0.16, msg->data.at(1), -1, -1);
+            random_blue.update(msg->data.at(0) - 0.24, msg->data.at(1), -1, -1);
         }
         else
         {
-            do_random_blue = false;
+            // do_random_blue = false;
         }
         if (msg->data.at(9))
         {
-            random_green.update(msg->data.at(5) - 0.16, msg->data.at(6), -1, -1);
+            random_green.update(msg->data.at(5) - 0.24, msg->data.at(6), -1, -1);
         }
         else
         {
-            do_random_green = false;
+            // do_random_green = false;
         }
         if (msg->data.at(14))
         {
-            random_red.update(msg->data.at(10) - 0.16, msg->data.at(11), -1, -1);
+            random_red.update(msg->data.at(10) - 0.23, msg->data.at(11), -1, -1);
         }
         else
         {
-            do_random_red = false;
+            // do_random_red = false;
         }
     }
 
@@ -489,7 +500,7 @@ int main(int argc, char **argv)
     string value;
     string line;
     string field;
-    string packagePath = ros::package::getPath("main_2022");
+    string packagePath;
     int waitCount = 0;
 
     while (ros::ok())
@@ -520,10 +531,11 @@ int main(int argc, char **argv)
 
                 // Script Reading
 
+                packagePath = ros::package::getPath("main_2022");
+
                 cout << endl;
                 inFile.open(packagePath + "/include/scriptBig.csv");
-                cout << "<< scriptBig.csv >> ";
-
+                cout << "File << Eurobot2022_ws/scriptBig.csv >> ";
                 if (inFile.fail())
                 {
                     cout << "Could Not Open !" << endl;
@@ -532,8 +544,6 @@ int main(int argc, char **argv)
                 {
                     cout << "Open Successfully !" << endl;
                 }
-
-                cout << endl;
 
                 double next_x;
                 double next_y;
@@ -545,19 +555,19 @@ int main(int argc, char **argv)
                     istringstream sin(line);
                     getline(sin, field, ',');
                     next_x = atof(field.c_str());
-                    // cout << next_x << " ";
+                    cout << next_x << " ";
 
                     getline(sin, field, ',');
                     next_y = atof(field.c_str());
-                    // cout << next_y << " ";
+                    cout << next_y << " ";
 
                     getline(sin, field, ',');
                     next_z = atof(field.c_str());
-                    // cout << next_z << " ";
+                    cout << next_z << " ";
 
                     getline(sin, field, ',');
                     next_w = atof(field.c_str());
-                    // cout << next_w << " ";
+                    cout << next_w << " ";
 
                     getline(sin, field, ',');
                     const char *cstr = field.c_str();
@@ -580,8 +590,7 @@ int main(int argc, char **argv)
                     // {
                     //     cout << next_m << endl;
                     // }
-
-                    // cout << next_m << endl;
+                    cout << next_m << endl;
 
                     if (side_state == 1)
                     {
@@ -624,6 +633,10 @@ int main(int argc, char **argv)
                         while (mission_List[goal_num].get_missionType() == '0')
                         {
                             goal_num++;
+                        }
+                        if (mission_List[goal_num].get_missionType() == 'Z')
+                        {
+                            updateRandomRoute(&mission_List[goal_num]);
                         }
                         next_target.pose.position.x = mission_List[goal_num].get_x();
                         next_target.pose.position.y = mission_List[goal_num].get_y();
@@ -673,6 +686,11 @@ int main(int argc, char **argv)
                             while (mission_List[goal_num].get_missionType() == '0')
                             {
                                 goal_num++;
+                            }
+                            if (mission_List[goal_num].get_missionType() == 'Z')
+                            {
+                                cout << "Updating Route" << endl;
+                                updateRandomRoute(&mission_List[goal_num]);
                             }
                             next_target.pose.position.x = mission_List[goal_num].get_x();
                             next_target.pose.position.y = mission_List[goal_num].get_y();
