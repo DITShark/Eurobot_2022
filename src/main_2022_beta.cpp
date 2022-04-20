@@ -11,8 +11,8 @@
 #include <nav_msgs/GetPlan.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
-#include <main_2022/Mission_srv.h>
 #include <ros/package.h>
+#include <std_srvs/Empty.h>
 
 #include <iostream>
 #include <stdlib.h>
@@ -199,11 +199,10 @@ public:
     {
         return missionOrder;
     }
-}
+};
 
 // Program Adjustment
 
-const bool OPEN_POSITION_ADJUSTMENT = false;
 const bool RANDOM_SAMPLE = true;
 
 // Adjustment Variable Define
@@ -453,6 +452,15 @@ public:
         return true;
     }
 
+    bool start_callback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
+    {
+        run_state = 1;
+        now_Status = 1;
+        mission_num = 0;
+        goal_num = 0;
+        return true;
+    }
+
     ros::NodeHandle nh;
 
     // ROS Topics Publishers
@@ -470,9 +478,9 @@ public:
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
+    ros::ServiceServer _RunState = nh.advertiseService("startRunning", &mainProgram::start_callback, this);      // Start Signal Service
 
     // ROS Service Client
-    // ros::ServiceClient _mission = nh.serviceClient<main_2022::Mission_srv>("Mission"); // Mission Giving Service
 };
 
 // Main Program
@@ -486,6 +494,7 @@ int main(int argc, char **argv)
 
     mainProgram mainClass;
     ros::Time initialTime = ros::Time::now();
+    std_msgs::Float32 timePublish;
 
     // Main Node Update Frequency
 
@@ -580,6 +589,9 @@ int main(int argc, char **argv)
                     getline(sin, field, ',');
                     next_o = atoi(field.c_str());
                     // cout << next_o << " ";
+
+                    missionPoint nextPoint(next_x, next_y, next_z, next_w, next_m, next_p, next_o);
+                    mission_List.push_back(nextPoint);
                 }
                 inFile.close();
 
@@ -630,12 +642,7 @@ int main(int argc, char **argv)
                         b = 'G';
                     }
                     next_m = b;
-
-                    // if (next_m != '0')
-                    // {
-                    //     cout << next_m << endl;
-                    // }
-                    cout << next_m << endl;
+                    // cout << next_m << endl;
 
                     if (side_state == 1)
                     {
@@ -664,7 +671,6 @@ int main(int argc, char **argv)
                 break;
 
             case READY:
-                mainClass.nh.getParam("/run_state", run_state);
                 if (run_state)
                 {
                     now_Status++;
@@ -749,18 +755,16 @@ int main(int argc, char **argv)
                         }
                     }
                 }
-                std_msgs::Float32 tt;
-                tt.data = ros::Time::now().toSec() - initialTime.toSec();
-                mainClass._time.publish(tt);
+                timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
+                mainClass._time.publish(timePublish);
                 break;
 
             case FINISH:
                 if (!finishMission)
                 {
-                    std_msgs::Float32 tt;
-                    tt.data = ros::Time::now().toSec() - initialTime.toSec();
-                    cout << "Mission Time: " << tt.data << endl;
-                    mainClass._time.publish(tt);
+                    timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
+                    cout << "Mission Time: " << timePublish.data << endl;
+                    mainClass._time.publish(timePublish);
                     ROS_INFO("Finish All Mission");
                     finishMission = true;
                 }
