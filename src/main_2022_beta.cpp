@@ -171,6 +171,10 @@ public:
         this->point = point;
         this->missionOrder = missionOrder;
     };
+    void changeMissionType(char newMission)
+    {
+        missionType = newMission;
+    }
     double get_x()
     {
         return x;
@@ -207,8 +211,8 @@ const bool RANDOM_SAMPLE = true;
 
 // Adjustment Variable Define
 
-const double INI_X_PURPLE = 2.168;
-const double INI_Y_PURPLE = 0.257;
+const double INI_X_PURPLE = 0;
+const double INI_Y_PURPLE = 0;
 const double INI_Z_PURPLE = 0;
 const double INI_W_PURPLE = 0;
 
@@ -222,7 +226,7 @@ const double POSITION_CORRECTION_ERROR = 10;
 // Variable Define
 
 int side_state; // 1 for yellow , 2 for purple
-int run_state;
+int run_state = 0;
 double mission_waitTime;
 
 int mission_num = 0;
@@ -454,10 +458,16 @@ public:
 
     bool start_callback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res)
     {
-        run_state = 1;
-        now_Status = 1;
-        mission_num = 0;
-        goal_num = 0;
+        if (now_Status > 1)
+        {
+            now_Status = 1;
+            mission_num = 0;
+            goal_num = 0;
+        }
+        else
+        {
+            run_state = 1;
+        }
         return true;
     }
 
@@ -595,7 +605,6 @@ int main(int argc, char **argv)
                 }
                 inFile.close();
 
-                cout << endl;
                 inFile.open(packagePath + "/include/scriptBig.csv");
                 cout << "<< scriptBig.csv >> ";
                 if (inFile.fail())
@@ -610,38 +619,52 @@ int main(int argc, char **argv)
                 while (getline(inFile, line))
                 {
                     istringstream sin(line);
-                    getline(sin, field, ',');
-                    next_x = atof(field.c_str());
-                    cout << next_x << " ";
 
                     getline(sin, field, ',');
-                    next_y = atof(field.c_str());
-                    cout << next_y << " ";
+                    next_o = atoi(field.c_str());
+                    // cout << next_o << " ";
 
-                    getline(sin, field, ',');
-                    next_z = atof(field.c_str());
-                    cout << next_z << " ";
-
-                    getline(sin, field, ',');
-                    next_w = atof(field.c_str());
-                    cout << next_w << " ";
-
-                    getline(sin, field, ',');
-                    const char *cstr = field.c_str();
-                    char b = *cstr;
-                    if (strcmp(field.c_str(), "Z1") == 0 && !RANDOM_SAMPLE)
+                    if (next_o)
                     {
-                        b = 'B';
+                        next_x = mission_List[next_o - 1].get_x();
+                        next_y = mission_List[next_o - 1].get_y();
+                        next_z = mission_List[next_o - 1].get_z();
+                        next_w = mission_List[next_o - 1].get_w();
+                        next_m = mission_List[next_o - 1].get_missionType();
                     }
-                    else if (strcmp(field.c_str(), "Z2") == 0 && !RANDOM_SAMPLE)
+                    else
                     {
-                        b = 'R';
+                        getline(sin, field, ',');
+                        next_x = atof(field.c_str());
+                        // cout << next_x << " ";
+
+                        getline(sin, field, ',');
+                        next_y = atof(field.c_str());
+                        // cout << next_y << " ";
+
+                        getline(sin, field, ',');
+                        next_z = atof(field.c_str());
+                        // cout << next_z << " ";
+
+                        getline(sin, field, ',');
+                        next_w = atof(field.c_str());
+                        // cout << next_w << " ";
+
+                        next_m = '0';
                     }
-                    else if (strcmp(field.c_str(), "Z3") == 0 && !RANDOM_SAMPLE)
+
+                    if (strcmp(&next_m, "Z1") == 0 && !RANDOM_SAMPLE)
                     {
-                        b = 'G';
+                        next_m = 'B';
                     }
-                    next_m = b;
+                    else if (strcmp(&next_m, "Z2") == 0 && !RANDOM_SAMPLE)
+                    {
+                        next_m = 'R';
+                    }
+                    else if (strcmp(&next_m, "Z3") == 0 && !RANDOM_SAMPLE)
+                    {
+                        next_m = 'G';
+                    }
                     // cout << next_m << endl;
 
                     if (side_state == 1)
@@ -654,6 +677,7 @@ int main(int argc, char **argv)
                         Path nextMission(next_x, 3 - next_y, -next_z, next_w, next_m);
                         path_List.push_back(nextMission);
                     }
+                    // cout << next_x << " " << next_y << " " << next_z << " " << next_w << " " << next_m << endl;
                 }
 
                 mainClass.nh.getParam("/mission_waitTime", mission_waitTime);
@@ -674,6 +698,7 @@ int main(int argc, char **argv)
                 if (run_state)
                 {
                     now_Status++;
+                    run_state = 0;
                     if (path_List.size() == 0)
                     {
                         now_Status++;
