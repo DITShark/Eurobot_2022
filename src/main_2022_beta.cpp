@@ -4,6 +4,7 @@
 #include <std_msgs/Bool.h>
 #include <std_msgs/Char.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Int64.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <nav_msgs/Odometry.h>
@@ -485,6 +486,11 @@ public:
         }
     }
 
+    void feedback_callback(const std_msgs::Int64::ConstPtr &msg)
+    {
+        mission_waitTime = 0;
+    }
+
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
     {
         res.plan.poses.clear();
@@ -543,6 +549,7 @@ public:
     ros::Subscriber _haveObsatcles = nh.subscribe<std_msgs::Bool>("have_obstacles", 1000, &mainProgram::emergency_callback, this);                   // Get emergency state from lidar
     ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
     ros::Subscriber _cameraInfo = nh.subscribe<std_msgs::Float32MultiArray>("Sample_position", 1000, &mainProgram::cameraInfo_callback, this);       // Get Sample Information from Camera
+    ros::Subscriber _feedback = nh.subscribe<std_msgs::Int64>("feedback", 1000, &mainProgram::feedback_callback, this);
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this); // Path giving Service
@@ -669,10 +676,11 @@ int main(int argc, char **argv)
                     mission_List.push_back(nextPoint);
                 }
 
-                // for (size_t i = 0; i < mission_List.size(); i++)
-                // {
-                //     mission_List[i].printOut();
-                // }
+                for (size_t i = 0; i < mission_List.size(); i++)
+                {
+                    mission_List[i].printOut();
+                }
+                cout << endl;
 
                 inFile.close();
 
@@ -756,10 +764,10 @@ int main(int argc, char **argv)
                     }
                 }
 
-                // for (size_t i = 0; i < path_List.size(); i++)
-                // {
-                //     path_List[i].printOut();
-                // }
+                for (size_t i = 0; i < path_List.size(); i++)
+                {
+                    path_List[i].printOut();
+                }
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
