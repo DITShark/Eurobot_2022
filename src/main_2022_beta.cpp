@@ -157,16 +157,19 @@ public:
 class missionPoint
 {
 private:
+    int missionOrder;
     double x;
     double y;
     double z;
     double w;
     char missionType;
     int point;
-    int missionOrder;
+    int whichHand = -1;
+    double vl53Left = -1;
+    double vl53Right = -1;
 
 public:
-    missionPoint(double x, double y, double z, double w, char missionType, int point, int missionOrder)
+    missionPoint(int missionOrder, double x, double y, double z, double w, char missionType, int point)
     {
         this->x = x;
         this->y = y;
@@ -180,9 +183,15 @@ public:
     {
         missionType = newMission;
     }
+    void update_VL53(int hand, double left_dis, double right_dis)
+    {
+        whichHand = hand;
+        vl53Left = left_dis;
+        vl53Right = right_dis;
+    }
     void printOut()
     {
-        cout << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << " " << missionOrder << endl;
+        cout << missionOrder << " " << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << endl;
     }
     double get_x()
     {
@@ -622,6 +631,9 @@ int main(int argc, char **argv)
                 char next_m;
                 int next_p;
                 int next_o;
+                int next_vl1;
+                double next_vl2;
+                double next_vl3;
 
                 cout << endl;
                 inFile.open(packagePath + "/include/" + filename_mission);
@@ -638,12 +650,13 @@ int main(int argc, char **argv)
                 while (getline(inFile, line))
                 {
                     istringstream sin(line);
+
+                    getline(sin, field, ',');
+                    next_o = atoi(field.c_str());
+                    // cout << next_o << endl;
+
                     getline(sin, field, ',');
                     next_x = atof(field.c_str());
-                    if (next_x == 0)
-                    {
-                        continue;
-                    }
                     // cout << next_x << " ";
 
                     getline(sin, field, ',');
@@ -668,11 +681,25 @@ int main(int argc, char **argv)
                     next_p = atoi(field.c_str());
                     // cout << next_p << " ";
 
-                    getline(sin, field, ',');
-                    next_o = atoi(field.c_str());
-                    // cout << next_o << endl;
+                    missionPoint nextPoint(next_o, next_x, next_y, next_z, next_w, next_m, next_p);
 
-                    missionPoint nextPoint(next_x, next_y, next_z, next_w, next_m, next_p, next_o);
+                    getline(sin, field, ',');
+                    next_vl1 = atoi(field.c_str());
+                    // cout << next_vl1 << " ";
+
+                    if (next_vl1 != -1)
+                    {
+                        getline(sin, field, ',');
+                        next_vl2 = atoi(field.c_str());
+                        // cout << next_vl2 << " ";
+
+                        getline(sin, field, ',');
+                        next_vl3 = atoi(field.c_str());
+                        // cout << next_vl3 << " ";
+
+                        nextPoint.update_VL53(next_vl1, next_vl2, next_vl3);
+                    }
+
                     mission_List.push_back(nextPoint);
                 }
 
@@ -682,7 +709,7 @@ int main(int argc, char **argv)
                 }
                 cout << endl;
 
-                inFile.close();
+                inFile.close(); // --------------------------------------------- Change CSV Line ---------------------------------------------
 
                 inFile.open(packagePath + "/include/" + filename_path);
                 cout << "Path CSV File << " << filename_path << " >> ";
