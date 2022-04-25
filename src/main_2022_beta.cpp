@@ -331,7 +331,7 @@ void setVL53Update(int missionC, geometry_msgs::PoseStamped *next)
     {
         next->pose.position.z = mission_List[missionC - 1].get_vl53_hand();
         next->pose.orientation.x = mission_List[missionC - 1].get_vl53_left();
-        next->pose.orientation.x = mission_List[missionC - 1].get_vl53_right();
+        next->pose.orientation.y = mission_List[missionC - 1].get_vl53_right();
     }
 }
 
@@ -722,6 +722,7 @@ int main(int argc, char **argv)
 
                         nextPoint.update_VL53(next_vl1, next_vl2, next_vl3);
                     }
+                    // cout << endl;
 
                     mission_List.push_back(nextPoint);
                 }
