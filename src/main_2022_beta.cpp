@@ -191,7 +191,7 @@ public:
     }
     void printOut()
     {
-        cout << missionOrder << " " << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << endl;
+        cout << missionOrder << " " << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << " " << whichHand << " " << vl53Left << " " << vl53Right << endl;
     }
     double get_x()
     {
@@ -225,11 +225,11 @@ public:
     {
         return whichHand;
     }
-    int get_vl53_left()
+    double get_vl53_left()
     {
         return vl53Left;
     }
-    int get_vl53_right()
+    double get_vl53_right()
     {
         return vl53Right;
     }
@@ -257,6 +257,7 @@ int side_state; // 1 for yellow , 2 for purple
 int run_state = 0;
 double mission_waitTime;
 double waitTime_Normal;
+bool feedback_activate;
 
 int mission_num = 0;
 int goal_num = 0;
@@ -327,12 +328,9 @@ void setChassisParameter(ros::NodeHandle *nh, int missionC)
 
 void setVL53Update(int missionC, geometry_msgs::PoseStamped *next)
 {
-    if (mission_List[missionC - 1].get_vl53_hand() != -1)
-    {
-        next->pose.position.z = mission_List[missionC - 1].get_vl53_hand();
-        next->pose.orientation.x = mission_List[missionC - 1].get_vl53_left();
-        next->pose.orientation.y = mission_List[missionC - 1].get_vl53_right();
-    }
+    next->pose.position.z = mission_List[missionC - 1].get_vl53_hand();
+    next->pose.orientation.x = mission_List[missionC - 1].get_vl53_left();
+    next->pose.orientation.y = mission_List[missionC - 1].get_vl53_right();
 }
 
 char getMissionChar(int num)
@@ -520,7 +518,10 @@ public:
 
     void feedback_callback(const std_msgs::Int64::ConstPtr &msg)
     {
-        mission_waitTime = 0;
+        if (feedback_activate)
+        {
+            mission_waitTime = 0;
+        }
     }
 
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
@@ -713,11 +714,11 @@ int main(int argc, char **argv)
                     if (next_vl1 != -1)
                     {
                         getline(sin, field, ',');
-                        next_vl2 = atoi(field.c_str());
+                        next_vl2 = atof(field.c_str());
                         // cout << next_vl2 << " ";
 
                         getline(sin, field, ',');
-                        next_vl3 = atoi(field.c_str());
+                        next_vl3 = atof(field.c_str());
                         // cout << next_vl3 << " ";
 
                         nextPoint.update_VL53(next_vl1, next_vl2, next_vl3);
@@ -821,6 +822,7 @@ int main(int argc, char **argv)
                 }
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
+                mainClass.nh.getParam("/feedback_activate", feedback_activate);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
                 mainClass.nh.param("/set_Chassis_Param_Type", set_Chassis_Param_Type, set_Chassis_Param_Type);
