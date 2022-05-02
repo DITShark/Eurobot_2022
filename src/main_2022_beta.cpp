@@ -283,6 +283,7 @@ geometry_msgs::Pose2D next_correction;
 
 vector<Path> path_List;
 vector<missionPoint> mission_List;
+vector<double> camera_adjustment;
 vector<int> missionTime_correct_Type;
 vector<double> missionTime_correct_Num;
 vector<int> set_Chassis_Param_Type;
@@ -383,19 +384,19 @@ void updateRandomRoute(Path *updateM)
     {
         do_random_blue = false;
         updateM->update(random_blue);
-        updateM->updateMission('B');
+        mission_List[updateM->get_pathType() - 1].changeMissionType('B');
     }
     else if (updateWhich == 2)
     {
         do_random_green = false;
         updateM->update(random_green);
-        updateM->updateMission('G');
+        mission_List[updateM->get_pathType() - 1].changeMissionType('G');
     }
     else if (updateWhich == 3)
     {
         do_random_red = false;
         updateM->update(random_red);
-        updateM->updateMission('R');
+        mission_List[updateM->get_pathType() - 1].changeMissionType('R');
     }
     else
     {
@@ -497,7 +498,7 @@ public:
     {
         if (msg->data.at(4))
         {
-            random_blue.update(msg->data.at(0) - 0.24, msg->data.at(1), -1, -1);
+            random_blue.update(msg->data.at(0) + camera_adjustment[0], msg->data.at(1) + camera_adjustment[1], -1, -1);
         }
         else
         {
@@ -505,7 +506,7 @@ public:
         }
         if (msg->data.at(9))
         {
-            random_green.update(msg->data.at(5) - 0.24, msg->data.at(6), -1, -1);
+            random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3], -1, -1);
         }
         else
         {
@@ -513,7 +514,7 @@ public:
         }
         if (msg->data.at(14))
         {
-            random_red.update(msg->data.at(10) - 0.23, msg->data.at(11), -1, -1);
+            random_red.update(msg->data.at(10) + camera_adjustment[4], msg->data.at(11) + camera_adjustment[5], -1, -1);
         }
         else
         {
@@ -829,6 +830,7 @@ int main(int argc, char **argv)
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.getParam("/feedback_activate", feedback_activate);
+                mainClass.nh.param("/camera_adjustment", camera_adjustment);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
                 mainClass.nh.param("/set_Chassis_Param_Type", set_Chassis_Param_Type, set_Chassis_Param_Type);
