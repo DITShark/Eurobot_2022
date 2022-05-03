@@ -1,16 +1,15 @@
 <launch>
         <param name="/side_state" type="int" value="1" />
         <param name="/mission_waitTime" type="double" value="1" />
-        <param name="/file_name_mission" type="string" value="missionPoint.csv" />
+        <param name="/file_name_mission" type="string" value="missionPoint_vl53.csv" />
         <param name="/file_name_path" type="string" value="scriptBig.csv" />
         <param name="/feedback_activate" type="bool" value="false" />
-        <rosparam param="/camera_adjustment">[-0.24, 0, -0.24, 0, -0.23, 0]<rosparam/>
+        <rosparam param="/camera_adjustment">[-0.24, 0, -0.23, 0, -0.22, -0.04]</rosparam>
         <rosparam param="/missionTime_correct_Type">[14, 15]</rosparam>
         <rosparam param="/missionTime_correct_Num">[1.2, 2.5]</rosparam>
         <rosparam param="/set_Chassis_Param_Type">[]</rosparam>
         <rosparam param="/set_Chassis_Param_xy_tolerance">[]</rosparam>
         <rosparam param="/set_Chassis_Param_theta_tolerance">[]</rosparam>
     <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
-    <!-- <node name="Main_Node_beta" pkg="main_2022" type="main_2022_Emerge" output="screen"> -->
     </node>
 </launch>

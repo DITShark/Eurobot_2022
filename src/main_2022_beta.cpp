@@ -274,6 +274,9 @@ double position_y;
 double orientation_z;
 double orientation_w;
 double startMissionTime;
+double armAngleBlue = 0;
+double armAngleGreen = 0;
+double armAngleRed = 0;
 
 int total_Point = 0;
 
@@ -291,7 +294,7 @@ vector<double> set_Chassis_Param_xy_tolerance;
 vector<double> set_Chassis_Param_theta_tolerance;
 
 randomSample random_blue(1.025, 0.975, 0.237214, 0.971457);
-randomSample random_green(1.235, 0.865, 0.9659258, 0.258819);
+randomSample random_green(1.235, 0.865, 0.9259258, 0.388819);
 randomSample random_red(1.235, 1.085, -0.7071068, 0.7071068);
 
 bool do_random_blue = true;
@@ -358,6 +361,30 @@ int getMissionPoint(int num)
         }
     }
     return 0;
+}
+
+double setAngleTurn(char type)
+{
+    double angle;
+    if (type == 'B')
+    {
+        angle = armAngleBlue;
+    }
+    else if (type == 'G')
+    {
+        angle = armAngleGreen;
+    }
+    else if (type == 'R')
+    {
+        angle = armAngleRed;
+    }
+    else
+    {
+        angle = 0;
+    }
+    angle = angle / 3.1415 * 180;
+    double angleTemp = angle / 60 - int(angle / 60);
+    return -angleTemp * 60;
 }
 
 void updateRandomRoute(Path *updateM)
@@ -483,8 +510,14 @@ public:
                 {
                     doing = true;
                     std_msgs::Char mm;
+                    std_msgs::Float32 ff;
                     mm.data = getMissionChar(path_List[goal_num].get_pathType());
                     _arm.publish(mm);
+                    if (mm.data == 'B' || mm.data == 'G' || mm.data == 'R')
+                    {
+                        ff.data = setAngleTurn(mm.data);
+                        _armTurn.publish(ff);
+                    }
                     ROS_INFO("Doing Mission Now... [ %c ]", mm.data);
                     cout << endl;
                     startMissionTime = ros::Time::now().toSec();
@@ -499,6 +532,8 @@ public:
         if (msg->data.at(4))
         {
             random_blue.update(msg->data.at(0) + camera_adjustment[0], msg->data.at(1) + camera_adjustment[1], -1, -1);
+            tf::Quaternion q(0, 0, msg->data.at(2), msg->data.at(3));
+            armAngleBlue = tf::getYaw(q);
         }
         else
         {
@@ -506,7 +541,9 @@ public:
         }
         if (msg->data.at(9))
         {
-            random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3], -1, -1);
+            random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3] + 0.02 * (msg->data.at(6) - 0.8) / 0.35, -1, -1);
+            tf::Quaternion q(0, 0, msg->data.at(7), msg->data.at(8));
+            armAngleGreen = tf::getYaw(q);
         }
         else
         {
@@ -515,6 +552,8 @@ public:
         if (msg->data.at(14))
         {
             random_red.update(msg->data.at(10) + camera_adjustment[4], msg->data.at(11) + camera_adjustment[5], -1, -1);
+            tf::Quaternion q(0, 0, msg->data.at(12), msg->data.at(13));
+            armAngleRed = tf::getYaw(q);
         }
         else
         {
@@ -582,6 +621,7 @@ public:
     ros::Publisher _time = nh.advertise<std_msgs::Float32>("total_Time", 1000);                // Publish total Time
     ros::Publisher _point = nh.advertise<std_msgs::Int32>("total_Point", 1000);                // Publish total Point
     ros::Publisher _docking = nh.advertise<std_msgs::Float32MultiArray>("docking_goal", 1000); // Publish vl53 goal
+    ros::Publisher _armTurn = nh.advertise<std_msgs::Float32>("arm_turn_howmuch", 1000);       // Publish Arm Turn Angle
 
     // ROS Topics Subscribers
     // ros::Subscriber _globalFilter = nh.subscribe<nav_msgs::Odometry>("global_filter", 1000, &mainProgram::position_callback, this);               // Get position from localization
@@ -830,7 +870,7 @@ int main(int argc, char **argv)
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.getParam("/feedback_activate", feedback_activate);
-                mainClass.nh.param("/camera_adjustment", camera_adjustment);
+                mainClass.nh.param("/camera_adjustment", camera_adjustment, camera_adjustment);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
                 mainClass.nh.param("/set_Chassis_Param_Type", set_Chassis_Param_Type, set_Chassis_Param_Type);
@@ -885,7 +925,7 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                    if (waitCount++ > 50)
+                    if (waitCount++ > 100)
                     {
                         ROS_INFO("Waiting Now...");
                         cout << endl;
