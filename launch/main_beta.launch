@@ -4,7 +4,7 @@
         <param name="/file_name_mission" type="string" value="missionPoint_vl53.csv" />
         <param name="/file_name_path" type="string" value="scriptBig.csv" />
         <param name="/feedback_activate" type="bool" value="false" />
-        <rosparam param="/camera_adjustment">[-0.24, 0, -0.23, 0, -0.22, -0.04]</rosparam>
+        <rosparam param="/camera_adjustment">[-0.24, 0, -0.23, 0.02, -0.23, -0.01]</rosparam>
         <rosparam param="/missionTime_correct_Type">[14, 15]</rosparam>
         <rosparam param="/missionTime_correct_Num">[1.2, 2.5]</rosparam>
         <rosparam param="/set_Chassis_Param_Type">[]</rosparam>
