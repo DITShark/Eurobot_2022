@@ -633,8 +633,7 @@ public:
 
     void setChassisParameter(int missionC)
     {
-        nh.setParam("/path_tracker/xy_tolerance", xy_tole_Normal);
-        nh.setParam("/path_tracker/theta_tolerance", theta_tole_Normal);
+        bool changeParam = false;
         for (size_t i = 0; i < set_Chassis_Param_Type.size(); i++)
         {
             if (missionC == set_Chassis_Param_Type[i])
@@ -647,11 +646,23 @@ public:
                 {
                     nh.setParam("/path_tracker/theta_tolerance", set_Chassis_Param_theta_tolerance[i]);
                 }
+                ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", set_Chassis_Param_xy_tolerance[i], set_Chassis_Param_theta_tolerance[i]);
                 std_srvs::Empty ssrv;
                 if (_params.call(ssrv))
                 {
                 }
+                changeParam = true;
                 break;
+            }
+        }
+        if (!changeParam)
+        {
+            ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", xy_tole_Normal, theta_tole_Normal);
+            nh.setParam("/path_tracker/xy_tolerance", xy_tole_Normal);
+            nh.setParam("/path_tracker/theta_tolerance", theta_tole_Normal);
+            std_srvs::Empty ssrv;
+            if (_params.call(ssrv))
+            {
             }
         }
     }
@@ -915,8 +926,6 @@ int main(int argc, char **argv)
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.getParam("/feedback_activate", feedback_activate);
-                mainClass.nh.getParam("/path_tracker/xy_tolerance", xy_tole_Normal);
-                mainClass.nh.getParam("/path_tracker/theta_tolerance", theta_tole_Normal);
                 mainClass.nh.param("/camera_adjustment", camera_adjustment, camera_adjustment);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
@@ -945,6 +954,10 @@ int main(int argc, char **argv)
                     }
                     else
                     {
+                        mainClass.nh.getParam("/path_tracker/xy_tolerance", xy_tole_Normal);
+                        mainClass.nh.getParam("/path_tracker/theta_tolerance", theta_tole_Normal);
+                        cout << endl;
+                        ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", xy_tole_Normal, theta_tole_Normal);
                         initialTime = ros::Time::now();
                         while (path_List[goal_num].get_pathType() == 0)
                         {
