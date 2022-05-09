@@ -259,6 +259,9 @@ double mission_waitTime;
 double waitTime_Normal;
 bool feedback_activate;
 
+double xy_tole_Normal;
+double theta_tole_Normal;
+
 int mission_num = 0;
 int goal_num = 0;
 int now_Status = 0;
@@ -267,7 +270,6 @@ int now_Mode = 1;
 bool moving = false;
 bool doing = false;
 bool finishMission = false;
-bool setChassisParam = false;
 
 double position_x;
 double position_y;
@@ -301,6 +303,13 @@ bool do_random_blue = true;
 bool do_random_green = true;
 bool do_random_red = true;
 
+tf::Quaternion bblue(0, 0, 0.237214, 0.971457);
+tf::Quaternion ggreen(0, 0, 0.9259258, 0.388819);
+tf::Quaternion rred(0, 0, -0.7071068, 0.7071068);
+double machineAngleBlue = tf::getYaw(bblue);
+double machineAngleGreen = tf::getYaw(ggreen);
+double machineAngleRed = tf::getYaw(rred);
+
 // Function Define
 
 void correctMissionTime(int missionC) // Create Rules for mission Wait Time
@@ -314,21 +323,6 @@ void correctMissionTime(int missionC) // Create Rules for mission Wait Time
         }
         mission_waitTime = waitTime_Normal;
     }
-}
-
-void setChassisParameter(ros::NodeHandle *nh, int missionC)
-{
-    for (size_t i = 0; i < set_Chassis_Param_Type.size(); i++)
-    {
-        if (missionC == set_Chassis_Param_Type[i])
-        {
-            nh->setParam("xy_tolerance", set_Chassis_Param_xy_tolerance[i]);
-            nh->setParam("theta_tolerance", set_Chassis_Param_theta_tolerance[i]);
-            break;
-        }
-    }
-    nh->setParam("xy_tolerance", 0.02);
-    nh->setParam("theta_tolerance", 0.03);
 }
 
 void setVL53Update(int missionC, std_msgs::Float32MultiArray *next)
@@ -435,6 +429,32 @@ void updateRandomRoute(Path *updateM)
     }
 }
 
+pair<double, double> changePurpleAngle(double ang_z, double ang_w, char which)
+{
+    pair<double, double> returnAngle;
+    tf::Quaternion nnow(0, 0, ang_z, ang_w);
+    double machineAngleNow = tf::getYaw(nnow);
+    double machineAngleAdjust;
+    machineAngleNow *= -1;
+    if (which == 'A' || which == 'B' || which == 'a' || which == 'b' || which == 'c' || which == 'C')
+    {
+        machineAngleAdjust = machineAngleBlue;
+    }
+    else if (which == 'F' || which == 'G' || which == 'g' || which == 'h' || which == 'H')
+    {
+        machineAngleAdjust = machineAngleGreen;
+    }
+    else if (which == 'Q' || which == 'R' || which == 'q' || which == 'r' || which == 's' || which == 'S' || which == '!')
+    {
+        machineAngleAdjust = machineAngleRed;
+    }
+    machineAngleNow -= 2 * machineAngleAdjust;
+    tf::Quaternion nnew = tf::createQuaternionFromYaw(machineAngleNow);
+    returnAngle.first = nnew.getZ();
+    returnAngle.second = nnew.getW();
+    return returnAngle;
+}
+
 // Node Handling Class Define
 
 class mainProgram
@@ -498,7 +518,7 @@ public:
                     next_target.pose.orientation.w = path_List[goal_num].get_w();
                     next_target.header.frame_id = "map";
                     next_target.header.stamp = ros::Time::now();
-                    setChassisParameter(&nh, path_List[goal_num].get_pathType());
+                    setChassisParameter(path_List[goal_num].get_pathType());
                     setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                     _target.publish(next_target);
                     _docking.publish(next_docking_goal);
@@ -602,7 +622,6 @@ public:
             moving = false;
             doing = false;
             finishMission = false;
-            setChassisParam = false;
             total_Point = 0;
         }
         else
@@ -610,6 +629,31 @@ public:
             run_state = 1;
         }
         return true;
+    }
+
+    void setChassisParameter(int missionC)
+    {
+        nh.setParam("/path_tracker/xy_tolerance", xy_tole_Normal);
+        nh.setParam("/path_tracker/theta_tolerance", theta_tole_Normal);
+        for (size_t i = 0; i < set_Chassis_Param_Type.size(); i++)
+        {
+            if (missionC == set_Chassis_Param_Type[i])
+            {
+                if (set_Chassis_Param_xy_tolerance[i] != -1)
+                {
+                    nh.setParam("/path_tracker/xy_tolerance", set_Chassis_Param_xy_tolerance[i]);
+                }
+                if (set_Chassis_Param_theta_tolerance[i] != -1)
+                {
+                    nh.setParam("/path_tracker/theta_tolerance", set_Chassis_Param_theta_tolerance[i]);
+                }
+                std_srvs::Empty ssrv;
+                if (_params.call(ssrv))
+                {
+                }
+                break;
+            }
+        }
     }
 
     ros::NodeHandle nh;
@@ -636,6 +680,7 @@ public:
     ros::ServiceServer _RunState = nh.advertiseService("startRunning", &mainProgram::start_callback, this);      // Start Signal Service
 
     // ROS Service Client
+    ros::ServiceClient _params = nh.serviceClient<std_srvs::Empty>("/path_tracker/params"); // Param Adjustment Service
 };
 
 // Main Program
@@ -839,7 +884,7 @@ int main(int argc, char **argv)
                     }
                     else if (side_state == 2)
                     {
-                        Path nextMission(next_x, 3 - next_y, -next_z, next_w, next_o);
+                        Path nextMission(next_x, 3 - next_y, changePurpleAngle(next_z, next_w, getMissionChar(next_o - 1)).first, changePurpleAngle(next_z, next_w, getMissionChar(next_o - 1)).second, next_o);
                         path_List.push_back(nextMission);
                     }
                     // cout << next_x << " " << next_y << " " << next_z << " " << next_w << " " << next_m << endl;
@@ -870,6 +915,8 @@ int main(int argc, char **argv)
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.getParam("/feedback_activate", feedback_activate);
+                mainClass.nh.getParam("/path_tracker/xy_tolerance", xy_tole_Normal);
+                mainClass.nh.getParam("/path_tracker/theta_tolerance", theta_tole_Normal);
                 mainClass.nh.param("/camera_adjustment", camera_adjustment, camera_adjustment);
                 mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
                 mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
@@ -914,7 +961,7 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = path_List[goal_num].get_w();
                         next_target.header.frame_id = "map";
                         next_target.header.stamp = ros::Time::now();
-                        setChassisParameter(&mainClass.nh, path_List[goal_num].get_pathType());
+                        mainClass.setChassisParameter(path_List[goal_num].get_pathType());
                         setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                         mainClass._target.publish(next_target);
                         mainClass._docking.publish(next_docking_goal);
@@ -973,7 +1020,7 @@ int main(int argc, char **argv)
                             next_target.pose.orientation.w = path_List[goal_num].get_w();
                             next_target.header.frame_id = "map";
                             next_target.header.stamp = ros::Time::now();
-                            setChassisParameter(&mainClass.nh, path_List[goal_num].get_pathType());
+                            mainClass.setChassisParameter(path_List[goal_num].get_pathType());
                             setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                             mainClass._target.publish(next_target);
                             mainClass._docking.publish(next_docking_goal);
