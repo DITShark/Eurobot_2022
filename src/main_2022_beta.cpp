@@ -38,6 +38,12 @@ enum Mode
     NORMAL
 };
 
+// Global Variable Define Before Class Define
+
+double mission_waitTime;
+double waitTime_Normal;
+vector<double> path_tracker_paramDefault;
+
 // Class Define
 
 class randomSample
@@ -256,6 +262,10 @@ public:
     {
         missionNum = mission;
     }
+    void printOut()
+    {
+        cout << missionNum << " " << linear_max_v << " " << linear_accelaration << " " << linear_kp << " " << linear_break_ratio << " " << angular_max_v << " " << angular_accelaration << " " << angular_kp << " " << angular_break_distance << " " << xy_tolerance << " " << theta_tolerance << " " << time_adjustment << endl;
+    }
     void updateParam(int whichParam, double adjustmentParam)
     {
         switch (whichParam)
@@ -299,7 +309,7 @@ public:
     {
         return missionNum;
     }
-    void setParam(ros::NodeHandle *nh)
+    void setParam(ros::NodeHandle *nh, ros::ServiceClient *cli)
     {
         if (linear_max_v != -1)
         {
@@ -341,12 +351,18 @@ public:
         {
             nh->setParam("/path_tracker/theta_tolerance", theta_tolerance);
         }
-        if (time_adjustment != -1)
+        std_srvs::Empty ssrv;
+        if (cli->call(ssrv))
         {
-            mission_waitTime = time_adjustment;
         }
     }
+
+    void correctMissionTime()
+    {
+        mission_waitTime = time_adjustment;
+    }
 };
+
 // Program Adjustment
 
 const bool RANDOM_SAMPLE = true;
@@ -368,11 +384,6 @@ const double INI_W_YELLOW = 0.9646;
 int side_state; // 1 for yellow , 2 for purple
 int run_state = 0;
 bool feedback_activate;
-
-double mission_waitTime;
-double waitTime_Normal;
-double xy_tole_Normal;
-double theta_tole_Normal;
 
 int mission_num = 0;
 int goal_num = 0;
@@ -402,11 +413,6 @@ vector<Path> path_List;
 vector<missionPoint> mission_List;
 vector<paramSetMission> param_List;
 vector<double> camera_adjustment;
-vector<int> missionTime_correct_Type;
-vector<double> missionTime_correct_Num;
-vector<int> set_Chassis_Param_Type;
-vector<double> set_Chassis_Param_xy_tolerance;
-vector<double> set_Chassis_Param_theta_tolerance;
 
 randomSample random_blue(1.025, 0.975, 0.237214, 0.971457);
 randomSample random_green(1.235, 0.865, 0.9259258, 0.388819);
@@ -424,19 +430,6 @@ double machineAngleGreen = tf::getYaw(ggreen);
 double machineAngleRed = tf::getYaw(rred);
 
 // Function Define
-
-void correctMissionTime(int missionC) // Create Rules for mission Wait Time
-{
-    for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
-    {
-        if (missionC == missionTime_correct_Type[i])
-        {
-            mission_waitTime = missionTime_correct_Num[i];
-            break;
-        }
-        mission_waitTime = waitTime_Normal;
-    }
-}
 
 void setVL53Update(int missionC, std_msgs::Float32MultiArray *next)
 {
@@ -568,6 +561,31 @@ pair<double, double> changePurpleAngle(double ang_z, double ang_w, char which)
     return returnAngle;
 }
 
+void setParamMission(int which, ros::NodeHandle *nh, ros::ServiceClient *cli)
+{
+    param_List[param_List.size() - 1].setParam(nh, cli);
+    for (size_t i = 0; i < param_List.size() - 1; i++)
+    {
+        if (param_List[i].get_missionNum() == which)
+        {
+            param_List[i].setParam(nh, cli);
+        }
+    }
+}
+
+void setMissionTime(int which)
+{
+    for (size_t i = 0; i < param_List.size() - 1; i++)
+    {
+        if (param_List[i].get_missionNum() == which)
+        {
+            param_List[i].correctMissionTime();
+            break;
+        }
+        mission_waitTime = waitTime_Normal;
+    }
+}
+
 // Node Handling Class Define
 
 class mainProgram
@@ -631,12 +649,12 @@ public:
                     next_target.pose.orientation.w = path_List[goal_num].get_w();
                     next_target.header.frame_id = "map";
                     next_target.header.stamp = ros::Time::now();
-                    setChassisParameter(path_List[goal_num].get_pathType());
+                    setParamMission(path_List[goal_num].get_pathType(), &nh, &_params);
                     setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                     _target.publish(next_target);
                     _docking.publish(next_docking_goal);
                     moving = true;
-                    ROS_INFO("Moving to x:[%f] y:[%f]", path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                    ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                     cout << endl;
                 }
                 else
@@ -651,10 +669,10 @@ public:
                         ff.data = setAngleTurn(mm.data);
                         _armTurn.publish(ff);
                     }
-                    ROS_INFO("Doing Mission Now... [ %c ]", mm.data);
+                    ROS_INFO("Mission Type Publish : [ %c ]", mm.data);
                     cout << endl;
                     startMissionTime = ros::Time::now().toSec();
-                    correctMissionTime(path_List[goal_num].get_pathType());
+                    setMissionTime(path_List[goal_num].get_pathType());
                 }
             }
         }
@@ -744,42 +762,6 @@ public:
         return true;
     }
 
-    void setChassisParameter(int missionC)
-    {
-        bool changeParam = false;
-        for (size_t i = 0; i < set_Chassis_Param_Type.size(); i++)
-        {
-            if (missionC == set_Chassis_Param_Type[i])
-            {
-                if (set_Chassis_Param_xy_tolerance[i] != -1)
-                {
-                    nh.setParam("/path_tracker/xy_tolerance", set_Chassis_Param_xy_tolerance[i]);
-                }
-                if (set_Chassis_Param_theta_tolerance[i] != -1)
-                {
-                    nh.setParam("/path_tracker/theta_tolerance", set_Chassis_Param_theta_tolerance[i]);
-                }
-                ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", set_Chassis_Param_xy_tolerance[i], set_Chassis_Param_theta_tolerance[i]);
-                std_srvs::Empty ssrv;
-                if (_params.call(ssrv))
-                {
-                }
-                changeParam = true;
-                break;
-            }
-        }
-        if (!changeParam)
-        {
-            ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", xy_tole_Normal, theta_tole_Normal);
-            nh.setParam("/path_tracker/xy_tolerance", xy_tole_Normal);
-            nh.setParam("/path_tracker/theta_tolerance", theta_tole_Normal);
-            std_srvs::Empty ssrv;
-            if (_params.call(ssrv))
-            {
-            }
-        }
-    }
-
     ros::NodeHandle nh;
 
     // ROS Topics Publishers
@@ -832,8 +814,10 @@ int main(int argc, char **argv)
     string packagePath = ros::package::getPath("main_2022");
     string filename_mission;
     string filename_path;
+    string filename_param;
     mainClass.nh.getParam("/file_name_mission", filename_mission);
     mainClass.nh.getParam("/file_name_path", filename_path);
+    mainClass.nh.getParam("/file_name_param", filename_param);
     int waitCount = 0;
 
     while (ros::ok())
@@ -1036,22 +1020,58 @@ int main(int argc, char **argv)
                 {
                     path_List[i].printOut();
                 }
+                cout << endl;
+
+                inFile.close(); // --------------------------------------------- Change CSV Line ---------------------------------------------
+
+                inFile.open(packagePath + "/include/" + filename_param);
+                cout << "Mission Setparam CSV File << " << filename_param << " >> ";
+                if (inFile.fail())
+                {
+                    cout << "Could Not Open !" << endl;
+                }
+                else
+                {
+                    cout << "Open Successfully !" << endl;
+                }
+                cout << endl;
+
+                double next_pp;
+                getline(inFile, line);
+                while (getline(inFile, line))
+                {
+                    istringstream sin(line);
+
+                    getline(sin, field, ',');
+                    next_o = atoi(field.c_str());
+                    // cout << next_o << " ";
+
+                    paramSetMission next_psm(next_o);
+                    param_List.push_back(next_psm);
+
+                    for (int i = 1; i <= 11; i++)
+                    {
+                        getline(sin, field, ',');
+                        next_pp = atof(field.c_str());
+                        // cout << "[" << next_pp << "] ";
+
+                        if (next_pp != 0)
+                        {
+                            param_List.at(param_List.size() - 1).updateParam(i, next_pp);
+                        }
+                    }
+                    // cout << endl;
+                }
+
+                for (size_t i = 0; i < param_List.size(); i++)
+                {
+                    param_List[i].printOut();
+                }
+                cout << endl;
 
                 mainClass.nh.getParam("/mission_waitTime", waitTime_Normal);
                 mainClass.nh.getParam("/feedback_activate", feedback_activate);
                 mainClass.nh.param("/camera_adjustment", camera_adjustment, camera_adjustment);
-                mainClass.nh.param("/missionTime_correct_Type", missionTime_correct_Type, missionTime_correct_Type);
-                mainClass.nh.param("/missionTime_correct_Num", missionTime_correct_Num, missionTime_correct_Num);
-                mainClass.nh.param("/set_Chassis_Param_Type", set_Chassis_Param_Type, set_Chassis_Param_Type);
-                mainClass.nh.param("/set_Chassis_Param_xy_tolerance", set_Chassis_Param_xy_tolerance, set_Chassis_Param_xy_tolerance);
-                mainClass.nh.param("/set_Chassis_Param_theta_tolerance", set_Chassis_Param_theta_tolerance, set_Chassis_Param_theta_tolerance);
-
-                cout << endl;
-                for (size_t i = 0; i < missionTime_correct_Type.size(); i++)
-                {
-                    ROS_INFO("Mission Num.%2d Correct to %.1f secs", missionTime_correct_Type[i], missionTime_correct_Num[i]);
-                }
-                cout << endl;
 
                 now_Status++;
                 break;
@@ -1067,10 +1087,33 @@ int main(int argc, char **argv)
                     }
                     else
                     {
-                        mainClass.nh.getParam("/path_tracker/xy_tolerance", xy_tole_Normal);
-                        mainClass.nh.getParam("/path_tracker/theta_tolerance", theta_tole_Normal);
-                        cout << endl;
-                        ROS_INFO("Path Tracker Tolerance : [xy]:%f  [theta]:%f", xy_tole_Normal, theta_tole_Normal);
+                        double next_param;
+                        mainClass.nh.getParam("/path_tracker/linear_max_velocity", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/linear_acceleration", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/linear_kp", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/linear_brake_distance_ratio", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/angular_max_velocity", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/angular_acceleration", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/angular_kp", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/angular_brake_distance", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/xy_tolerance", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        mainClass.nh.getParam("/path_tracker/theta_tolerance", next_param);
+                        path_tracker_paramDefault.push_back(next_param);
+                        paramSetMission defaultMission(-1);
+                        for (int i = 1; i <= 11; i++)
+                        {
+                            param_List.at(param_List.size() - 1).updateParam(i, path_tracker_paramDefault[i - 1]);
+                        }
+
                         initialTime = ros::Time::now();
                         while (path_List[goal_num].get_pathType() == 0)
                         {
@@ -1087,12 +1130,12 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = path_List[goal_num].get_w();
                         next_target.header.frame_id = "map";
                         next_target.header.stamp = ros::Time::now();
-                        mainClass.setChassisParameter(path_List[goal_num].get_pathType());
+                        setParamMission(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                         setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                         mainClass._target.publish(next_target);
                         mainClass._docking.publish(next_docking_goal);
                         moving = true;
-                        ROS_INFO("Moving to x:[%f] y:[%f]", path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                        ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                         cout << endl;
                     }
                 }
@@ -1146,12 +1189,12 @@ int main(int argc, char **argv)
                             next_target.pose.orientation.w = path_List[goal_num].get_w();
                             next_target.header.frame_id = "map";
                             next_target.header.stamp = ros::Time::now();
-                            mainClass.setChassisParameter(path_List[goal_num].get_pathType());
+                            setParamMission(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                             setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                             mainClass._target.publish(next_target);
                             mainClass._docking.publish(next_docking_goal);
                             moving = true;
-                            ROS_INFO("Moving to x:[%f] y:[%f]", path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                            ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                             cout << endl;
                         }
                     }

@@ -3,13 +3,9 @@
         <param name="/mission_waitTime" type="double" value="1" />
         <param name="/file_name_mission" type="string" value="missionPoint_vl53.csv" />
         <param name="/file_name_path" type="string" value="scriptBig.csv" />
+        <param name="/file_name_param" type="string" value="paramSetBig.csv" />
         <param name="/feedback_activate" type="bool" value="false" />
         <rosparam param="/camera_adjustment">[-0.24, 0, -0.23, 0.02, -0.23, -0.01]</rosparam>
-        <rosparam param="/missionTime_correct_Type">[14, 15]</rosparam>
-        <rosparam param="/missionTime_correct_Num">[1.2, 2.5]</rosparam>
-        <rosparam param="/set_Chassis_Param_Type">[7, 8, 9, 10, 11, 12, 16, 17, 18, 19]</rosparam>
-        <rosparam param="/set_Chassis_Param_xy_tolerance">[-1, -1, -1, -1, -1, -1, -1, -1, -1, 0.08]</rosparam>
-        <rosparam param="/set_Chassis_Param_theta_tolerance">[0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 0.08, 3.14]</rosparam>
     <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
     </node>
 </launch>
