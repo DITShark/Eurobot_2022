@@ -1111,7 +1111,7 @@ int main(int argc, char **argv)
                         path_tracker_paramDefault.push_back(next_param);
                         paramSetMission defaultMission(-1);
                         param_List.push_back(defaultMission);
-                        for (int i = 1; i <= 11; i++)
+                        for (int i = 1; i < 11; i++)
                         {
                             param_List.at(param_List.size() - 1).updateParam(i, path_tracker_paramDefault[i - 1]);
                         }

@@ -1,3 +1,4 @@
+Num,linear_x,linear_y,orientation_z,orientation_w,missionType,Points,which_VL53,VL53_right,VL53_left
 1,0.7332,0.6097,-0.8736,0.4852,F,1,-1,,
 2,0.5651,0.6832,-0.8689,-0.4945,A,1,-1,,
 3,0.8364,0.6765,0.0328,-0.9994,Q,1,-1,,
