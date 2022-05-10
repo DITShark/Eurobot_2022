@@ -235,6 +235,118 @@ public:
     }
 };
 
+class paramSetMission
+{
+private:
+    int missionNum;
+    double linear_max_v = -1;
+    double linear_accelaration = -1;
+    double linear_kp = -1;
+    double linear_break_ratio = -1;
+    double angular_max_v = -1;
+    double angular_accelaration = -1;
+    double angular_kp = -1;
+    double angular_break_distance = -1;
+    double xy_tolerance = -1;
+    double theta_tolerance = -1;
+    double time_adjustment = -1;
+
+public:
+    paramSetMission(int mission)
+    {
+        missionNum = mission;
+    }
+    void updateParam(int whichParam, double adjustmentParam)
+    {
+        switch (whichParam)
+        {
+        case 1:
+            linear_max_v = adjustmentParam;
+            break;
+        case 2:
+            linear_accelaration = adjustmentParam;
+            break;
+        case 3:
+            linear_kp = adjustmentParam;
+            break;
+        case 4:
+            linear_break_ratio = adjustmentParam;
+            break;
+        case 5:
+            angular_max_v = adjustmentParam;
+            break;
+        case 6:
+            angular_accelaration = adjustmentParam;
+            break;
+        case 7:
+            angular_kp = adjustmentParam;
+            break;
+        case 8:
+            angular_break_distance = adjustmentParam;
+            break;
+        case 9:
+            xy_tolerance = adjustmentParam;
+            break;
+        case 10:
+            theta_tolerance = adjustmentParam;
+            break;
+        case 11:
+            time_adjustment = adjustmentParam;
+            break;
+        }
+    }
+    int get_missionNum()
+    {
+        return missionNum;
+    }
+    void setParam(ros::NodeHandle *nh)
+    {
+        if (linear_max_v != -1)
+        {
+            nh->setParam("/path_tracker/linear_max_velocity", linear_max_v);
+        }
+        if (linear_accelaration != -1)
+        {
+            nh->setParam("/path_tracker/linear_accelaration", linear_accelaration);
+        }
+        if (linear_kp != -1)
+        {
+            nh->setParam("/path_tracker/linear_kp", linear_kp);
+        }
+        if (linear_break_ratio != -1)
+        {
+            nh->setParam("/path_tracker/linear_break_ratio", linear_break_ratio);
+        }
+        if (angular_max_v != -1)
+        {
+            nh->setParam("/path_tracker/angular_max_velocity", angular_max_v);
+        }
+        if (angular_accelaration != -1)
+        {
+            nh->setParam("/path_tracker/angular_accelaration", angular_accelaration);
+        }
+        if (angular_kp != -1)
+        {
+            nh->setParam("/path_tracker/angular_kp", angular_kp);
+        }
+        if (angular_break_distance != -1)
+        {
+            nh->setParam("/path_tracker/angular_break_distance", angular_break_distance);
+        }
+        if (xy_tolerance != -1)
+        {
+            nh->setParam("/path_tracker/xy_tolerance", xy_tolerance);
+        }
+        if (theta_tolerance != -1)
+        {
+            nh->setParam("/path_tracker/theta_tolerance", theta_tolerance);
+        }
+        if (time_adjustment != -1)
+        {
+            mission_waitTime = time_adjustment;
+        }
+    }
+};
 // Program Adjustment
 
 const bool RANDOM_SAMPLE = true;
@@ -255,10 +367,10 @@ const double INI_W_YELLOW = 0.9646;
 
 int side_state; // 1 for yellow , 2 for purple
 int run_state = 0;
-double mission_waitTime;
-double waitTime_Normal;
 bool feedback_activate;
 
+double mission_waitTime;
+double waitTime_Normal;
 double xy_tole_Normal;
 double theta_tole_Normal;
 
@@ -288,6 +400,7 @@ geometry_msgs::Pose2D next_correction;
 
 vector<Path> path_List;
 vector<missionPoint> mission_List;
+vector<paramSetMission> param_List;
 vector<double> camera_adjustment;
 vector<int> missionTime_correct_Type;
 vector<double> missionTime_correct_Num;
