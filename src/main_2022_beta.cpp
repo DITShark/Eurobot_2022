@@ -871,6 +871,7 @@ int main(int argc, char **argv)
                     cout << "Open Successfully !" << endl;
                 }
                 cout << endl;
+                getline(inFile, line);
                 while (getline(inFile, line))
                 {
                     istringstream sin(line);
