@@ -1,11 +1,13 @@
 <launch>
-        <param name="/side_state" type="int" value="1" />
-        <param name="/mission_waitTime" type="double" value="1" />
-        <param name="/file_name_mission" type="string" value="missionPoint_vl53.csv" />
-        <param name="/file_name_path" type="string" value="scriptBig.csv" />
-        <param name="/file_name_param" type="string" value="paramSetBig.csv" />
-        <param name="/feedback_activate" type="bool" value="false" />
-        <rosparam param="/camera_adjustment">[-0.24, 0, -0.23, 0.02, -0.23, -0.01]</rosparam>
-    <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
-    </node>
+    <group ns="Tera">
+            <param name="side_state" type="int" value="1" />
+            <param name="mission_waitTime" type="double" value="1" />
+            <param name="file_name_mission" type="string" value="missionPoint_vl53.csv" />
+            <param name="file_name_path" type="string" value="scriptBig.csv" />
+            <param name="file_name_param" type="string" value="paramSetBig.csv" />
+            <param name="feedback_activate" type="bool" value="false" />
+            <rosparam param="camera_adjustment">[-0.24, 0, -0.23, 0.02, -0.23, -0.01]</rosparam>
+        <node name="Main_Node_beta" pkg="main_2022" type="main_2022_beta" output="screen">
+        </node>
+    </group>
 </launch>
