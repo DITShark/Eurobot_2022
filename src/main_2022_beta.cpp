@@ -171,8 +171,10 @@ private:
     char missionType;
     int point;
     int whichHand = -1;
-    double vl53Left = -1;
-    double vl53Right = -1;
+    double vl53Left = 0;
+    double vl53Right = 0;
+    double vl53_x_offset = 0;
+    double vl53_y_offset = 0;
 
 public:
     missionPoint(int missionOrder, double x, double y, double z, double w, char missionType, int point)
@@ -189,15 +191,17 @@ public:
     {
         missionType = newMission;
     }
-    void update_VL53(int hand, double left_dis, double right_dis)
+    void update_VL53(int hand, double left_dis, double right_dis, double x_offset, double y_offset)
     {
         whichHand = hand;
         vl53Left = left_dis;
         vl53Right = right_dis;
+        vl53_x_offset = x_offset;
+        vl53_y_offset = y_offset;
     }
     void printOut()
     {
-        cout << missionOrder << " " << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << " " << whichHand << " " << vl53Left << " " << vl53Right << endl;
+        cout << missionOrder << " " << x << " " << y << " " << z << " " << w << " " << missionType << " " << point << " " << whichHand << " " << vl53Left << " " << vl53Right << " " << vl53_x_offset << " " << vl53_y_offset << endl;
     }
     double get_x()
     {
@@ -238,6 +242,14 @@ public:
     double get_vl53_right()
     {
         return vl53Right;
+    }
+    double get_vl53_x_offset()
+    {
+        return vl53_x_offset;
+    }
+    double get_vl53_y_offset()
+    {
+        return vl53_y_offset;
     }
 };
 
@@ -317,7 +329,7 @@ public:
         }
         if (linear_accelaration != -1)
         {
-            nh->setParam("path_tracker/linear_accelaration", linear_accelaration);
+            nh->setParam("path_tracker/linear_acceleration", linear_accelaration);
         }
         if (linear_kp != -1)
         {
@@ -325,7 +337,7 @@ public:
         }
         if (linear_break_ratio != -1)
         {
-            nh->setParam("path_tracker/linear_break_ratio", linear_break_ratio);
+            nh->setParam("path_tracker/linear_brake_distance_ratio", linear_break_ratio);
         }
         if (angular_max_v != -1)
         {
@@ -333,7 +345,7 @@ public:
         }
         if (angular_accelaration != -1)
         {
-            nh->setParam("path_tracker/angular_accelaration", angular_accelaration);
+            nh->setParam("path_tracker/angular_acceleration", angular_accelaration);
         }
         if (angular_kp != -1)
         {
@@ -341,7 +353,7 @@ public:
         }
         if (angular_break_distance != -1)
         {
-            nh->setParam("path_tracker/angular_break_distance", angular_break_distance);
+            nh->setParam("path_tracker/angular_brake_distance", angular_break_distance);
         }
         if (xy_tolerance != -1)
         {
@@ -412,6 +424,7 @@ geometry_msgs::Pose2D next_correction;
 vector<Path> path_List;
 vector<missionPoint> mission_List;
 vector<paramSetMission> param_List;
+vector<int> delete_List;
 vector<double> camera_adjustment;
 
 randomSample random_blue(1.025, 0.975, 0.237214, 0.971457);
@@ -431,36 +444,40 @@ double machineAngleRed = tf::getYaw(rred);
 
 // Function Define
 
+missionPoint getMission(int num)
+{
+    for (size_t i = 0; i < mission_List.size(); i++)
+    {
+        if (num == mission_List[i].get_missionOrder())
+        {
+            return mission_List[i];
+        }
+    }
+}
+
 void setVL53Update(int missionC, std_msgs::Float32MultiArray *next)
 {
     next->data.clear();
-    next->data.push_back(mission_List[missionC - 1].get_vl53_hand());
-    next->data.push_back(mission_List[missionC - 1].get_vl53_left());
-    next->data.push_back(mission_List[missionC - 1].get_vl53_right());
+    next->data.push_back(getMission(missionC).get_vl53_hand());
+    next->data.push_back(getMission(missionC).get_vl53_left());
+    next->data.push_back(getMission(missionC).get_vl53_right());
+    next->data.push_back(getMission(missionC).get_vl53_x_offset());
+    next->data.push_back(getMission(missionC).get_vl53_y_offset());
 }
 
 char getMissionChar(int num)
 {
-    for (size_t i = 0; i < mission_List.size(); i++)
-    {
-        if (num == mission_List[i].get_missionOrder())
-        {
-            return mission_List[i].get_missionType();
-        }
-    }
-    return '#';
+    return getMission(num).get_missionType();
+}
+
+void updateMissionChar(int num, char newMission)
+{
+    getMission(num).changeMissionType(newMission);
 }
 
 int getMissionPoints(int num)
 {
-    for (size_t i = 0; i < mission_List.size(); i++)
-    {
-        if (num == mission_List[i].get_missionOrder())
-        {
-            return mission_List[i].get_point();
-        }
-    }
-    return 0;
+    return getMission(num).get_point();
 }
 
 double setAngleTurn(char type)
@@ -569,6 +586,7 @@ void setMissionParam(int which, ros::NodeHandle *nh, ros::ServiceClient *cli)
         if (param_List[i].get_missionNum() == which)
         {
             param_List[i].setParam(nh, cli);
+            break;
         }
     }
 }
@@ -582,6 +600,27 @@ void setMissionTime(int which)
         {
             param_List[i].correctMissionTime();
             break;
+        }
+    }
+}
+
+void checkDeleteList()
+{
+    while (1)
+    {
+        if (delete_List.size() == 0)
+        {
+            break;
+        }
+        for (size_t i = 0; i < delete_List.size(); i++)
+        {
+            if (goal_num == delete_List[i])
+            {
+                mission_num = goal_num;
+                goal_num++;
+                delete_List.erase(delete_List.begin() + i);
+                break;
+            }
         }
     }
 }
@@ -638,6 +677,7 @@ public:
                     {
                         goal_num++;
                     }
+                    checkDeleteList();
                     if (path_List[goal_num].get_pathType() != 0 && getMissionChar(path_List[goal_num].get_pathType()) == 'Z')
                     {
                         ROS_INFO("Updating Route ...\n");
@@ -651,8 +691,8 @@ public:
                     next_target.header.stamp = ros::Time::now();
                     setMissionParam(path_List[goal_num].get_pathType(), &nh, &_params);
                     setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
-                    _target.publish(next_target);
                     _docking.publish(next_docking_goal);
+                    _target.publish(next_target);
                     moving = true;
                     ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                     cout << endl;
@@ -859,6 +899,8 @@ int main(int argc, char **argv)
                 int next_vl1;
                 double next_vl2;
                 double next_vl3;
+                double next_vl4;
+                double next_vl5;
 
                 cout << endl;
                 inFile.open(packagePath + "/include/" + filename_mission);
@@ -923,7 +965,15 @@ int main(int argc, char **argv)
                         next_vl3 = atof(field.c_str());
                         // cout << next_vl3 << " ";
 
-                        nextPoint.update_VL53(next_vl1, next_vl2, next_vl3);
+                        getline(sin, field, ',');
+                        next_vl4 = atof(field.c_str());
+                        // cout << next_vl4 << " ";
+
+                        getline(sin, field, ',');
+                        next_vl5 = atof(field.c_str());
+                        // cout << next_vl5 << " ";
+
+                        nextPoint.update_VL53(next_vl1, next_vl2, next_vl3, next_vl4, next_vl5);
                     }
                     // cout << endl;
 
@@ -959,13 +1009,13 @@ int main(int argc, char **argv)
 
                     if (next_o)
                     {
-                        next_x = mission_List[next_o - 1].get_x();
+                        next_x = getMission(next_o).get_x();
                         // cout << next_x << " ";
-                        next_y = mission_List[next_o - 1].get_y();
+                        next_y = getMission(next_o).get_y();
                         // cout << next_y << " ";
-                        next_z = mission_List[next_o - 1].get_z();
+                        next_z = getMission(next_o).get_z();
                         // cout << next_z << " ";
-                        next_w = mission_List[next_o - 1].get_w();
+                        next_w = getMission(next_o).get_w();
                         // cout << next_w << endl;
                     }
                     else
@@ -994,7 +1044,7 @@ int main(int argc, char **argv)
                     }
                     else if (side_state == 2)
                     {
-                        Path nextMission(next_x, 3 - next_y, changePurpleAngle(next_z, next_w, getMissionChar(next_o - 1)).first, changePurpleAngle(next_z, next_w, getMissionChar(next_o - 1)).second, next_o);
+                        Path nextMission(next_x, 3 - next_y, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).first, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).second, next_o);
                         path_List.push_back(nextMission);
                     }
                     // cout << next_x << " " << next_y << " " << next_z << " " << next_w << " " << next_m << endl;
@@ -1122,6 +1172,7 @@ int main(int argc, char **argv)
                         {
                             goal_num++;
                         }
+                        checkDeleteList();
                         if (getMissionChar(path_List[goal_num].get_pathType()) == 'Z')
                         {
                             ROS_INFO("Updating Route ...\n");
@@ -1135,8 +1186,8 @@ int main(int argc, char **argv)
                         next_target.header.stamp = ros::Time::now();
                         setMissionParam(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                         setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
-                        mainClass._target.publish(next_target);
                         mainClass._docking.publish(next_docking_goal);
+                        mainClass._target.publish(next_target);
                         moving = true;
                         ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                         cout << endl;
@@ -1185,6 +1236,7 @@ int main(int argc, char **argv)
                             {
                                 goal_num++;
                             }
+                            checkDeleteList();
                             if (getMissionChar(path_List[goal_num].get_pathType()) == 'Z')
                             {
                                 ROS_INFO("Updating Route ...\n");
@@ -1198,8 +1250,8 @@ int main(int argc, char **argv)
                             next_target.header.stamp = ros::Time::now();
                             setMissionParam(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                             setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
-                            mainClass._target.publish(next_target);
                             mainClass._docking.publish(next_docking_goal);
+                            mainClass._target.publish(next_target);
                             moving = true;
                             ROS_INFO("Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
                             cout << endl;
@@ -1218,7 +1270,7 @@ int main(int argc, char **argv)
                     mainClass._time.publish(timePublish);
 
                     pointPublish.data = add_Point;
-                    ROS_INFO("Total Point: %d", pointPublish.data);
+                    ROS_INFO(" Tera Total Point: %d", pointPublish.data);
                     mainClass._totalpoint.publish(pointPublish);
 
                     cout << endl;
