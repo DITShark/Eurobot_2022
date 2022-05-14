@@ -606,9 +606,10 @@ void setMissionTime(int which)
 
 void checkDeleteList()
 {
+    bool checkFinish = false;
     while (1)
     {
-        if (delete_List.size() == 0)
+        if (delete_List.size() == 0 || checkFinish)
         {
             break;
         }
@@ -620,6 +621,10 @@ void checkDeleteList()
                 goal_num++;
                 delete_List.erase(delete_List.begin() + i);
                 break;
+            }
+            if (i == delete_List.size() - 1)
+            {
+                checkFinish = true;
             }
         }
     }
@@ -1037,16 +1042,19 @@ int main(int argc, char **argv)
                         // cout << next_w << endl;
                     }
 
-                    if (side_state == 1)
-                    {
-                        Path nextMission(next_x, next_y, next_z, next_w, next_o);
-                        path_List.push_back(nextMission);
-                    }
-                    else if (side_state == 2)
-                    {
-                        Path nextMission(next_x, 3 - next_y, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).first, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).second, next_o);
-                        path_List.push_back(nextMission);
-                    }
+                    Path nextMission(next_x, next_y, next_z, next_w, next_o);
+                    path_List.push_back(nextMission);
+
+                    // if (side_state == 1)
+                    // {
+                    //     Path nextMission(next_x, next_y, next_z, next_w, next_o);
+                    //     path_List.push_back(nextMission);
+                    // }
+                    // else if (side_state == 2)
+                    // {
+                    //     Path nextMission(next_x, 3 - next_y, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).first, changePurpleAngle(next_z, next_w, getMissionChar(next_o)).second, next_o);
+                    //     path_List.push_back(nextMission);
+                    // }
                     // cout << next_x << " " << next_y << " " << next_z << " " << next_w << " " << next_m << endl;
 
                     if (next_o != 0)
