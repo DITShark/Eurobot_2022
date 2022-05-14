@@ -257,14 +257,14 @@ class paramSetMission
 {
 private:
     int missionNum;
-    double linear_max_v = -1;
+    double linear_max_velocity = -1;
     double linear_accelaration = -1;
     double linear_kp = -1;
     double linear_break_ratio = -1;
-    double angular_max_v = -1;
+    double angular_max_velocity = -1;
     double angular_accelaration = -1;
     double angular_kp = -1;
-    double angular_break_distance = -1;
+    double angular_brake_distance = -1;
     double xy_tolerance = -1;
     double theta_tolerance = -1;
     double time_adjustment = -1;
@@ -276,14 +276,14 @@ public:
     }
     void printOut()
     {
-        cout << missionNum << " " << linear_max_v << " " << linear_accelaration << " " << linear_kp << " " << linear_break_ratio << " " << angular_max_v << " " << angular_accelaration << " " << angular_kp << " " << angular_break_distance << " " << xy_tolerance << " " << theta_tolerance << " " << time_adjustment << endl;
+        cout << missionNum << " " << linear_max_velocity << " " << linear_accelaration << " " << linear_kp << " " << linear_break_ratio << " " << angular_max_velocity << " " << angular_accelaration << " " << angular_kp << " " << angular_brake_distance << " " << xy_tolerance << " " << theta_tolerance << " " << time_adjustment << endl;
     }
     void updateParam(int whichParam, double adjustmentParam)
     {
         switch (whichParam)
         {
         case 1:
-            linear_max_v = adjustmentParam;
+            linear_max_velocity = adjustmentParam;
             break;
         case 2:
             linear_accelaration = adjustmentParam;
@@ -295,7 +295,7 @@ public:
             linear_break_ratio = adjustmentParam;
             break;
         case 5:
-            angular_max_v = adjustmentParam;
+            angular_max_velocity = adjustmentParam;
             break;
         case 6:
             angular_accelaration = adjustmentParam;
@@ -304,7 +304,7 @@ public:
             angular_kp = adjustmentParam;
             break;
         case 8:
-            angular_break_distance = adjustmentParam;
+            angular_brake_distance = adjustmentParam;
             break;
         case 9:
             xy_tolerance = adjustmentParam;
@@ -323,9 +323,9 @@ public:
     }
     void setParam(ros::NodeHandle *nh, ros::ServiceClient *cli)
     {
-        if (linear_max_v != -1)
+        if (linear_max_velocity != -1)
         {
-            nh->setParam("path_tracker/linear_max_velocity", linear_max_v);
+            nh->setParam("path_tracker/linear_max_velocity", linear_max_velocity);
         }
         if (linear_accelaration != -1)
         {
@@ -339,9 +339,9 @@ public:
         {
             nh->setParam("path_tracker/linear_brake_distance_ratio", linear_break_ratio);
         }
-        if (angular_max_v != -1)
+        if (angular_max_velocity != -1)
         {
-            nh->setParam("path_tracker/angular_max_velocity", angular_max_v);
+            nh->setParam("path_tracker/angular_max_velocity", angular_max_velocity);
         }
         if (angular_accelaration != -1)
         {
@@ -351,9 +351,9 @@ public:
         {
             nh->setParam("path_tracker/angular_kp", angular_kp);
         }
-        if (angular_break_distance != -1)
+        if (angular_brake_distance != -1)
         {
-            nh->setParam("path_tracker/angular_brake_distance", angular_break_distance);
+            nh->setParam("path_tracker/angular_brake_distance", angular_brake_distance);
         }
         if (xy_tolerance != -1)
         {
