@@ -451,7 +451,7 @@ char getMissionChar(int num)
     return '#';
 }
 
-int getMissionPoint(int num)
+int getMissionPoints(int num)
 {
     for (size_t i = 0; i < mission_List.size(); i++)
     {
@@ -561,7 +561,7 @@ pair<double, double> changePurpleAngle(double ang_z, double ang_w, char which)
     return returnAngle;
 }
 
-void setParamMission(int which, ros::NodeHandle *nh, ros::ServiceClient *cli)
+void setMissionParam(int which, ros::NodeHandle *nh, ros::ServiceClient *cli)
 {
     param_List[param_List.size() - 1].setParam(nh, cli);
     for (size_t i = 0; i < param_List.size() - 1; i++)
@@ -649,7 +649,7 @@ public:
                     next_target.pose.orientation.w = path_List[goal_num].get_w();
                     next_target.header.frame_id = "map";
                     next_target.header.stamp = ros::Time::now();
-                    setParamMission(path_List[goal_num].get_pathType(), &nh, &_params);
+                    setMissionParam(path_List[goal_num].get_pathType(), &nh, &_params);
                     setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                     _target.publish(next_target);
                     _docking.publish(next_docking_goal);
@@ -1133,7 +1133,7 @@ int main(int argc, char **argv)
                         next_target.pose.orientation.w = path_List[goal_num].get_w();
                         next_target.header.frame_id = "map";
                         next_target.header.stamp = ros::Time::now();
-                        setParamMission(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
+                        setMissionParam(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                         setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                         mainClass._target.publish(next_target);
                         mainClass._docking.publish(next_docking_goal);
@@ -1169,8 +1169,8 @@ int main(int argc, char **argv)
                     {
                         doing = false;
 
-                        add_Point += getMissionPoint(path_List[goal_num].get_pathType());
-                        pointPublish.data = getMissionPoint(path_List[goal_num].get_pathType());
+                        add_Point += getMissionPoints(path_List[goal_num].get_pathType());
+                        pointPublish.data = getMissionPoints(path_List[goal_num].get_pathType());
                         mainClass._point.publish(pointPublish);
 
                         if (goal_num == path_List.size() - 1)
@@ -1196,7 +1196,7 @@ int main(int argc, char **argv)
                             next_target.pose.orientation.w = path_List[goal_num].get_w();
                             next_target.header.frame_id = "map";
                             next_target.header.stamp = ros::Time::now();
-                            setParamMission(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
+                            setMissionParam(path_List[goal_num].get_pathType(), &mainClass.nh, &mainClass._params);
                             setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                             mainClass._target.publish(next_target);
                             mainClass._docking.publish(next_docking_goal);
