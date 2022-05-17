@@ -406,9 +406,10 @@ int now_Mode = NORMAL;
 
 bool moving = false;
 bool doing = false;
-bool finishMission = false;
+bool finish_mission = false;
 bool going_home = false;
 bool pid_closed = false;
+bool mission_success = false;
 
 double position_x;
 double position_y;
@@ -419,7 +420,7 @@ double armAngleBlue = 0;
 double armAngleGreen = 0;
 double armAngleRed = 0;
 
-int add_Point = 0;
+int tera_point = 0;
 
 geometry_msgs::PoseStamped next_target;
 std_msgs::Float32MultiArray next_docking_goal;
@@ -845,6 +846,7 @@ public:
         if (feedback_activate)
         {
             mission_waitTime = 0;
+            mission_success = true;
         }
     }
 
@@ -883,8 +885,8 @@ public:
             goal_num = 0;
             moving = false;
             doing = false;
-            finishMission = false;
-            add_Point = 0;
+            finish_mission = false;
+            tera_point = 0;
         }
         else
         {
@@ -901,7 +903,6 @@ public:
     ros::Publisher _arm = nh.advertise<std_msgs::Char>("arm_go_where", 1000);                  // Publish mission to mission
     ros::Publisher _time = nh.advertise<std_msgs::Float32>("total_Time", 1000);                // Publish total Time
     ros::Publisher _point = nh.advertise<std_msgs::Int32>("/add_Point", 1000);                 // Publish add Point to Pico
-    ros::Publisher _totalpoint = nh.advertise<std_msgs::Int32>("total_Point", 1000);           // Publish total Point
     ros::Publisher _docking = nh.advertise<std_msgs::Float32MultiArray>("docking_goal", 1000); // Publish vl53 goal
     ros::Publisher _armTurn = nh.advertise<std_msgs::Float32>("arm_turn_howmuch", 1000);       // Publish Arm Turn Angle
     ros::Publisher _shutdown = nh.advertise<std_msgs::Bool>("shutdown", 1000);                 // Publish turn off PID to base
@@ -937,7 +938,7 @@ int main(int argc, char **argv)
 
     // Main Node Update Frequency
 
-    ros::Rate rate(200);
+    ros::Rate rate(20);
 
     ifstream inFile;
     string value;
@@ -1276,7 +1277,7 @@ int main(int argc, char **argv)
                 }
                 else
                 {
-                    if (waitCount++ > 100)
+                    if (waitCount++ > 20)
                     {
                         ROS_INFO("Tera Waiting Now...");
                         cout << endl;
@@ -1301,8 +1302,12 @@ int main(int argc, char **argv)
                     {
                         doing = false;
 
-                        add_Point += getMissionPoints(path_List[goal_num].get_pathType());
-                        pointPublish.data = getMissionPoints(path_List[goal_num].get_pathType());
+                        if (mission_success)
+                        {
+                            tera_point += getMissionPoints(path_List[goal_num].get_pathType());
+                            mission_success = false;
+                        }
+                        pointPublish.data = tera_point;
                         mainClass._point.publish(pointPublish);
 
                         if (goal_num == path_List.size() - 1)
@@ -1362,6 +1367,9 @@ int main(int argc, char **argv)
                 timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
                 mainClass._time.publish(timePublish);
 
+                pointPublish.data = tera_point;
+                mainClass._point.publish(pointPublish);
+
                 if (ros::Time::now().toSec() - initialTime.toSec() > 99.85)
                 {
                     now_Status = FINISH;
@@ -1377,7 +1385,7 @@ int main(int argc, char **argv)
                 break;
 
             case FINISH:
-                if (!finishMission && ros::Time::now().toSec() - initialTime.toSec() > 99.85)
+                if (!finish_mission && ros::Time::now().toSec() - initialTime.toSec() > 99.85)
                 {
                     if (!pid_closed)
                     {
@@ -1391,14 +1399,17 @@ int main(int argc, char **argv)
                     ROS_INFO("Mission Time: %f", timePublish.data);
                     mainClass._time.publish(timePublish);
 
-                    pointPublish.data = add_Point;
+                    pointPublish.data = tera_point;
                     ROS_INFO(" Tera Total Point: %d", pointPublish.data);
-                    mainClass._totalpoint.publish(pointPublish);
+                    mainClass._point.publish(pointPublish);
 
                     cout << endl;
                     ROS_INFO("Finish All Mission");
-                    finishMission = true;
+                    finish_mission = true;
                 }
+
+                pointPublish.data = tera_point;
+                mainClass._point.publish(pointPublish);
 
                 break;
             }
