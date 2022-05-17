@@ -83,6 +83,11 @@ public:
         }
     }
 
+    void updatePurple()
+    {
+        y = 3 - y;
+    }
+
     double get_x()
     {
         return x;
@@ -403,6 +408,7 @@ bool moving = false;
 bool doing = false;
 bool finishMission = false;
 bool going_home = false;
+bool pid_closed = false;
 
 double position_x;
 double position_y;
@@ -548,19 +554,19 @@ void updateRandomRoute(Path *updateM)
     {
         do_random_blue = false;
         updateM->update(random_blue);
-        getMission(updateM->get_pathType()).changeMissionType('B');
+        getMissionPointer(updateM->get_pathType())->changeMissionType('B');
     }
     else if (updateWhich == 2)
     {
         do_random_green = false;
         updateM->update(random_green);
-        getMission(updateM->get_pathType()).changeMissionType('G');
+        getMissionPointer(updateM->get_pathType())->changeMissionType('G');
     }
     else if (updateWhich == 3)
     {
         do_random_red = false;
         updateM->update(random_red);
-        getMission(updateM->get_pathType()).changeMissionType('R');
+        getMissionPointer(updateM->get_pathType())->changeMissionType('R');
     }
     else
     {
@@ -766,35 +772,71 @@ public:
 
     void cameraInfo_callback(const std_msgs::Float32MultiArray::ConstPtr &msg)
     {
-        if (msg->data.at(4))
+        if (side_state == 1)
         {
-            random_blue.update(msg->data.at(0) + camera_adjustment[0], msg->data.at(1) + camera_adjustment[1], -1, -1);
-            tf::Quaternion q(0, 0, msg->data.at(2), msg->data.at(3));
-            armAngleBlue = tf::getYaw(q);
+            if (msg->data.at(4))
+            {
+                random_blue.update(msg->data.at(0) + camera_adjustment[0], msg->data.at(1) + camera_adjustment[1], -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(2), msg->data.at(3));
+                armAngleBlue = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_blue = false;
+            }
+            if (msg->data.at(9))
+            {
+                random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3] + 0.02 * (msg->data.at(6) - 0.8) / 0.35, -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(7), msg->data.at(8));
+                armAngleGreen = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_green = false;
+            }
+            if (msg->data.at(14))
+            {
+                random_red.update(msg->data.at(10) + camera_adjustment[4], msg->data.at(11) + camera_adjustment[5], -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(12), msg->data.at(13));
+                armAngleRed = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_red = false;
+            }
         }
-        else
+        else if (side_state == 2)
         {
-            // do_random_blue = false;
-        }
-        if (msg->data.at(9))
-        {
-            random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3] + 0.02 * (msg->data.at(6) - 0.8) / 0.35, -1, -1);
-            tf::Quaternion q(0, 0, msg->data.at(7), msg->data.at(8));
-            armAngleGreen = tf::getYaw(q);
-        }
-        else
-        {
-            // do_random_green = false;
-        }
-        if (msg->data.at(14))
-        {
-            random_red.update(msg->data.at(10) + camera_adjustment[4], msg->data.at(11) + camera_adjustment[5], -1, -1);
-            tf::Quaternion q(0, 0, msg->data.at(12), msg->data.at(13));
-            armAngleRed = tf::getYaw(q);
-        }
-        else
-        {
-            // do_random_red = false;
+            if (msg->data.at(19))
+            {
+                random_blue.update(msg->data.at(15) + camera_adjustment[0], msg->data.at(16) + camera_adjustment[1], -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(17), msg->data.at(18));
+                armAngleBlue = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_blue = false;
+            }
+            if (msg->data.at(24))
+            {
+                random_green.update(msg->data.at(20) + camera_adjustment[2], msg->data.at(21) + camera_adjustment[3], -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(22), msg->data.at(23));
+                armAngleGreen = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_green = false;
+            }
+            if (msg->data.at(29))
+            {
+                random_red.update(msg->data.at(25) + camera_adjustment[4], msg->data.at(26) + camera_adjustment[5], -1, -1);
+                tf::Quaternion q(0, 0, msg->data.at(27), msg->data.at(28));
+                armAngleRed = tf::getYaw(q);
+            }
+            else
+            {
+                // do_random_red = false;
+            }
         }
     }
 
@@ -934,6 +976,10 @@ int main(int argc, char **argv)
                     position_y = INI_Y_PURPLE;
                     orientation_z = INI_Z_PURPLE;
                     orientation_w = INI_W_PURPLE;
+
+                    random_blue.updatePurple();
+                    random_green.updatePurple();
+                    random_red.updatePurple();
                 }
 
                 // Script Reading
@@ -1100,24 +1146,6 @@ int main(int argc, char **argv)
                     //     path_List.push_back(nextMission);
                     // }
                     // cout << next_x << " " << next_y << " " << next_z << " " << next_w << " " << next_m << endl;
-
-                    if (next_o != 0)
-                    {
-                        const char next_m = getMissionChar(next_o);
-                        if (strcmp(&next_m, "Z1") == 0 && !RANDOM_SAMPLE)
-                        {
-                            getMission(next_o).changeMissionType('B');
-                        }
-                        else if (strcmp(&next_m, "Z2") == 0 && !RANDOM_SAMPLE)
-                        {
-                            getMission(next_o).changeMissionType('R');
-                        }
-                        else if (strcmp(&next_m, "Z3") == 0 && !RANDOM_SAMPLE)
-                        {
-                            getMission(next_o).changeMissionType('G');
-                        }
-                        // cout << next_m << endl;
-                    }
                 }
 
                 for (size_t i = 0; i < path_List.size(); i++)
@@ -1334,21 +1362,30 @@ int main(int argc, char **argv)
                 timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
                 mainClass._time.publish(timePublish);
 
-                if (ros::Time::now().toSec() - initialTime.toSec() > 99.8)
+                if (ros::Time::now().toSec() - initialTime.toSec() > 99.85)
                 {
                     now_Status = FINISH;
                     ROS_INFO("Time Up ! Close All Things !");
                     cout << endl;
+
+                    std_msgs::Bool turnoff;
+                    turnoff.data = true;
+                    mainClass._shutdown.publish(turnoff);
+                    pid_closed = true;
                 }
 
                 break;
 
             case FINISH:
-                if (!finishMission)
+                if (!finishMission && ros::Time::now().toSec() - initialTime.toSec() > 99.85)
                 {
-                    std_msgs::Bool turnoff;
-                    turnoff.data = true;
-                    mainClass._shutdown.publish(turnoff);
+                    if (!pid_closed)
+                    {
+                        std_msgs::Bool turnoff;
+                        turnoff.data = true;
+                        mainClass._shutdown.publish(turnoff);
+                        pid_closed = true;
+                    }
 
                     timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
                     ROS_INFO("Mission Time: %f", timePublish.data);
