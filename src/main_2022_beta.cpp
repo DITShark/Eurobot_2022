@@ -20,7 +20,7 @@
 #include <math.h>
 #include <iostream>
 #include <fstream>
-#include <ctime>
+#include <algorithm>
 
 using namespace std;
 
@@ -380,10 +380,6 @@ public:
     }
 };
 
-// Program Adjustment
-
-const bool RANDOM_SAMPLE = true;
-
 // Adjustment Variable Define
 
 const double INI_X_PURPLE = 0;
@@ -402,11 +398,13 @@ int side_state; // 1 for yellow , 2 for purple
 int run_state = 0;
 bool feedback_activate;
 double go_home_time;
+bool barometer_activate;
 
 int mission_num = 0;
 int goal_num = 0;
 int now_Status = SETUP;
 int now_Mode = NORMAL;
+int readBarometer = 0;
 
 bool moving = false;
 bool doing = false;
@@ -414,6 +412,7 @@ bool finish_mission = false;
 bool going_home = false;
 bool pid_closed = false;
 bool mission_success = false;
+bool decideDeletionTime = false;
 
 double position_x;
 double position_y;
@@ -573,14 +572,6 @@ void updateRandomRoute(Path *updateM)
         updateM->update(random_red);
         getMissionPointer(updateM->get_pathType())->changeMissionType('R');
     }
-    else
-    {
-        while (path_List[goal_num].get_pathType() == 'Z')
-        {
-            mission_num++;
-            goal_num++;
-        }
-    }
 }
 
 pair<double, double> changePurpleAngle(double ang_z, double ang_w, char which)
@@ -637,48 +628,51 @@ void setMissionTime(int which)
 
 void checkDeleteList()
 {
-    bool checkFinish = false;
+    std::sort(delete_List.rbegin(), delete_List.rend());
 
     cout << "Mission No." << path_List[goal_num].get_pathType() << " Check Delete List :" << endl;
 
     cout << "Delete List Before: ";
     for (size_t i = 0; i < delete_List.size(); i++)
     {
-        cout << "No." << delete_List[i] << " ";
+        cout << delete_List[i] << " ";
     }
     cout << endl;
 
     while (1)
     {
-        if (delete_List.size() == 0 || checkFinish)
+        if (delete_List.size() == 0)
         {
             break;
         }
         for (size_t i = 0; i < delete_List.size(); i++)
         {
-            if (path_List[goal_num].get_pathType() == delete_List[i])
+            delete_List[i] -= 1;
+        }
+        if (!delete_List[delete_List.size() - 1])
+        {
+            cout << "Delete Mission No." << path_List[goal_num].get_pathType() << endl;
+            goal_num++;
+            mission_num = goal_num;
+            while (path_List[goal_num].get_pathType() == 0)
             {
-                cout << "Delete Mission No." << path_List[goal_num].get_pathType() << endl;
                 goal_num++;
-                mission_num = goal_num;
-                while (path_List[goal_num].get_pathType() == 0)
-                {
-                    goal_num++;
-                }
-                delete_List.erase(delete_List.begin() + i);
-                break;
             }
-            if (i == delete_List.size() - 1)
+            while (!delete_List[delete_List.size() - 1])
             {
-                checkFinish = true;
+                delete_List.pop_back();
             }
+        }
+        else
+        {
+            break;
         }
     }
 
     cout << "Delete List After: ";
     for (size_t i = 0; i < delete_List.size(); i++)
     {
-        cout << "No." << delete_List[i] << " ";
+        cout << delete_List[i] << " ";
     }
     cout << endl;
     cout << endl;
@@ -793,7 +787,7 @@ public:
             }
             if (msg->data.at(9))
             {
-                random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3] + 0.02 * (msg->data.at(6) - 0.8) / 0.35, -1, -1);
+                random_green.update(msg->data.at(5) + camera_adjustment[2], msg->data.at(6) + camera_adjustment[3], -1, -1);
                 tf::Quaternion q(0, 0, msg->data.at(7), msg->data.at(8));
                 armAngleGreen = tf::getYaw(q);
             }
@@ -865,6 +859,111 @@ public:
         }
     }
 
+    void barometer_callback(const std_msgs::Int64::ConstPtr &msg)
+    {
+        if (barometer_activate)
+        {
+            return;
+        }
+        int barometer = msg->data;
+        int mission = getMission(path_List[goal_num].get_pathType()).get_missionType();
+        if (mission >= 97 && !decideDeletionTime)
+        {
+            decideDeletionTime = true;
+            readBarometer++;
+        }
+        else if (mission < 97 && decideDeletionTime)
+        {
+            decideDeletionTime = false;
+            readBarometer *= -1;
+        }
+
+        if (readBarometer > 0 && decideDeletionTime)
+        {
+            readBarometer *= -1;
+            if (readBarometer == 1)
+            {
+                if (!(barometer % 1000000) / 100000) // Sixth Digit Red Up
+                {
+                    delete_List.push_back(5);
+                }
+                if (!(barometer % 100000) / 10000) // Fifth Digit Red Down
+                {
+                    delete_List.push_back(4);
+                }
+                if (!(barometer % 10000) / 1000) // Fourth Digit Green Up
+                {
+                    delete_List.push_back(3);
+                }
+                if (!(barometer % 1000) / 100) // Third Digit Green Down
+                {
+                    delete_List.push_back(2);
+                }
+                if (!(barometer % 100) / 10) // Second Digit Blue Up
+                {
+                    delete_List.push_back(1);
+                }
+                if (!barometer % 10) // First Digit Blue Down
+                {
+                    mission_num++;
+                    goal_num++;
+                    while (path_List[goal_num].get_pathType() == 0)
+                    {
+                        goal_num++;
+                    }
+                    checkDeleteList();
+                    next_target.pose.position.x = path_List[goal_num].get_x();
+                    next_target.pose.position.y = path_List[goal_num].get_y();
+                    next_target.pose.orientation.z = path_List[goal_num].get_z();
+                    next_target.pose.orientation.w = path_List[goal_num].get_w();
+                    next_target.header.frame_id = "map";
+                    next_target.header.stamp = ros::Time::now();
+                    setMissionParam(path_List[goal_num].get_pathType(), &nh);
+                    setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
+                    _docking.publish(next_docking_goal);
+                    _target.publish(next_target);
+                    moving = true;
+                    ROS_INFO("[%d] Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", goal_num, path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                    cout << endl;
+                }
+            }
+            else if (readBarometer == 2)
+            {
+                if (!(barometer % 1000000) / 100000) // Sixth Digit Red Up
+                {
+                    delete_List.push_back(2);
+                }
+                if (!(barometer % 10000) / 1000) // Fourth Digit Green Up
+                {
+                    delete_List.push_back(1);
+                }
+                if (!(barometer % 100) / 10) // Second Digit Blue Up
+                {
+                    mission_num++;
+                    goal_num++;
+                    while (path_List[goal_num].get_pathType() == 0)
+                    {
+                        goal_num++;
+                    }
+                    checkDeleteList();
+                    next_target.pose.position.x = path_List[goal_num].get_x();
+                    next_target.pose.position.y = path_List[goal_num].get_y();
+                    next_target.pose.orientation.z = path_List[goal_num].get_z();
+                    next_target.pose.orientation.w = path_List[goal_num].get_w();
+                    next_target.header.frame_id = "map";
+                    next_target.header.stamp = ros::Time::now();
+                    setMissionParam(path_List[goal_num].get_pathType(), &nh);
+                    setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
+                    _docking.publish(next_docking_goal);
+                    _target.publish(next_target);
+                    moving = true;
+                    ROS_INFO("[%d] Going to Mission No.%d : Moving to x:[%.3f] y:[%.3f]", goal_num, path_List[goal_num].get_pathType(), path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                    cout << endl;
+                }
+            }
+        }
+    }
+
     bool givePath_callback(nav_msgs::GetPlan::Request &req, nav_msgs::GetPlan::Response &res)
     {
         cout << "Mission Path Giving ..." << endl;
@@ -929,6 +1028,7 @@ public:
     ros::Subscriber _FinishOrNot = nh.subscribe<std_msgs::Bool>("Finishornot", 1000, &mainProgram::moving_callback, this);                           // Get finish moving state from controller
     ros::Subscriber _cameraInfo = nh.subscribe<std_msgs::Float32MultiArray>("Sample_position", 1000, &mainProgram::cameraInfo_callback, this);       // Get Sample Information from Camera
     ros::Subscriber _feedback = nh.subscribe<std_msgs::Int64>("feedback", 1000, &mainProgram::feedback_callback, this);                              // Get feedfback from mission
+    ros::Subscriber _barometer = nh.subscribe<std_msgs::Int64>("barometer", 1000, &mainProgram::barometer_callback, this);
 
     // ROS Service Server
     ros::ServiceServer _MissionPath = nh.advertiseService("MissionPath", &mainProgram::givePath_callback, this);  // Path giving Service
@@ -1221,6 +1321,7 @@ int main(int argc, char **argv)
                 mainClass.nh.getParam("feedback_activate", feedback_activate);
                 mainClass.nh.param("camera_adjustment", camera_adjustment, camera_adjustment);
                 mainClass.nh.getParam("go_home_time", go_home_time);
+                mainClass.nh.getParam("barometer_activate", barometer_activate);
 
                 now_Status = READY;
                 break;
@@ -1403,19 +1504,6 @@ int main(int argc, char **argv)
             case FINISH:
                 if (!finish_mission)
                 {
-                    if (side_state == 1)
-                    {
-                        std_msgs::Char mm;
-                        mm.data = '!';
-                        mainClass._arm.publish(mm);
-                    }
-                    else if (side_state == 2)
-                    {
-                        std_msgs::Char mm;
-                        mm.data = '?';
-                        mainClass._arm.publish(mm);
-                    }
-
                     timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
                     ROS_INFO("Mission Time: %f", timePublish.data);
                     mainClass._time.publish(timePublish);
@@ -1440,10 +1528,6 @@ int main(int argc, char **argv)
                         pid_closed = true;
                     }
                 }
-
-                pointPublish.data = tera_point;
-                mainClass._point.publish(pointPublish);
-
                 break;
             }
             break;
