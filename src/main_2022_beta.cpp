@@ -373,6 +373,10 @@ public:
     void correctMissionTime()
     {
         mission_waitTime = time_adjustment;
+        if (time_adjustment == -1)
+        {
+            mission_waitTime = waitTime_Normal;
+        }
     }
 };
 
@@ -433,7 +437,7 @@ vector<int> delete_List;
 vector<double> camera_adjustment;
 
 randomSample random_blue(1.025, 0.975, 0.237214, 0.971457);
-randomSample random_green(1.235, 0.865, 0.9259258, 0.388819);
+randomSample random_green(1.235, 0.865, 0.9612258, 0.275619);
 randomSample random_red(1.235, 1.085, -0.7071068, 0.7071068);
 
 bool do_random_blue = true;
@@ -635,13 +639,14 @@ void checkDeleteList()
 {
     bool checkFinish = false;
 
+    cout << "Mission No." << path_List[goal_num].get_pathType() << " Check Delete List :" << endl;
+
     cout << "Delete List Before: ";
     for (size_t i = 0; i < delete_List.size(); i++)
     {
-        cout << delete_List[i] << " ";
+        cout << "No." << delete_List[i] << " ";
     }
     cout << endl;
-    cout << "Deleting..." << endl;
 
     while (1)
     {
@@ -653,6 +658,7 @@ void checkDeleteList()
         {
             if (path_List[goal_num].get_pathType() == delete_List[i])
             {
+                cout << "Delete Mission No." << path_List[goal_num].get_pathType() << endl;
                 goal_num++;
                 mission_num = goal_num;
                 while (path_List[goal_num].get_pathType() == 0)
@@ -672,7 +678,7 @@ void checkDeleteList()
     cout << "Delete List After: ";
     for (size_t i = 0; i < delete_List.size(); i++)
     {
-        cout << delete_List[i] << " ";
+        cout << "No." << delete_List[i] << " ";
     }
     cout << endl;
     cout << endl;
@@ -845,8 +851,17 @@ public:
     {
         if (feedback_activate)
         {
-            mission_waitTime = 0;
-            mission_success = true;
+            // mission_waitTime = 0;
+            if (msg->data)
+            {
+                tera_point += msg->data;
+                ROS_INFO("Mission Success !");
+            }
+            else
+            {
+                ROS_INFO("Mission Failed !");
+            }
+            cout << endl;
         }
     }
 
@@ -902,7 +917,7 @@ public:
     ros::Publisher _StopOrNot = nh.advertise<std_msgs::Bool>("Stopornot", 1000);               // Publish emergency state to controller
     ros::Publisher _arm = nh.advertise<std_msgs::Char>("arm_go_where", 1000);                  // Publish mission to mission
     ros::Publisher _time = nh.advertise<std_msgs::Float32>("total_Time", 1000);                // Publish total Time
-    ros::Publisher _point = nh.advertise<std_msgs::Int32>("/add_Point", 1000);                 // Publish add Point to Pico
+    ros::Publisher _point = nh.advertise<std_msgs::Int32>("/tera_point", 1000);                // Publish add Point to Pico
     ros::Publisher _docking = nh.advertise<std_msgs::Float32MultiArray>("docking_goal", 1000); // Publish vl53 goal
     ros::Publisher _armTurn = nh.advertise<std_msgs::Float32>("arm_turn_howmuch", 1000);       // Publish Arm Turn Angle
     ros::Publisher _shutdown = nh.advertise<std_msgs::Bool>("shutdown", 1000);                 // Publish turn off PID to base
@@ -1302,11 +1317,17 @@ int main(int argc, char **argv)
                     {
                         doing = false;
 
-                        if (mission_success)
-                        {
-                            tera_point += getMissionPoints(path_List[goal_num].get_pathType());
-                            mission_success = false;
-                        }
+                        // if (mission_waitTime != 0)
+                        // {
+                        //     mission_success = false;
+                        //     ROS_INFO("Mission Time %.1f seconds is Up !", mission_waitTime);
+                        // }
+
+                        // if (mission_success)
+                        // {
+                        //     tera_point += getMissionPoints(path_List[goal_num].get_pathType());
+                        //     mission_success = false;
+                        // }
                         pointPublish.data = tera_point;
                         mainClass._point.publish(pointPublish);
 
@@ -1360,7 +1381,7 @@ int main(int argc, char **argv)
                     setVL53Update(path_List[goal_num].get_pathType(), &next_docking_goal);
                     mainClass._docking.publish(next_docking_goal);
                     mainClass._target.publish(next_target);
-                    ROS_INFO(" Time to Go Home !!! : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_x(), path_List[goal_num].get_y());
+                    ROS_INFO("Time to Go Home !!! : Moving to x:[%.3f] y:[%.3f]", path_List[goal_num].get_x(), path_List[goal_num].get_y());
                     cout << endl;
                 }
 
@@ -1370,22 +1391,46 @@ int main(int argc, char **argv)
                 pointPublish.data = tera_point;
                 mainClass._point.publish(pointPublish);
 
-                if (ros::Time::now().toSec() - initialTime.toSec() > 99.85)
+                if (ros::Time::now().toSec() - initialTime.toSec() > 100)
                 {
                     now_Status = FINISH;
                     ROS_INFO("Time Up ! Close All Things !");
                     cout << endl;
-
-                    std_msgs::Bool turnoff;
-                    turnoff.data = true;
-                    mainClass._shutdown.publish(turnoff);
-                    pid_closed = true;
                 }
 
                 break;
 
             case FINISH:
-                if (!finish_mission && ros::Time::now().toSec() - initialTime.toSec() > 99.85)
+                if (!finish_mission)
+                {
+                    if (side_state == 1)
+                    {
+                        std_msgs::Char mm;
+                        mm.data = '!';
+                        mainClass._arm.publish(mm);
+                    }
+                    else if (side_state == 2)
+                    {
+                        std_msgs::Char mm;
+                        mm.data = '?';
+                        mainClass._arm.publish(mm);
+                    }
+
+                    timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
+                    ROS_INFO("Mission Time: %f", timePublish.data);
+                    mainClass._time.publish(timePublish);
+
+                    pointPublish.data = tera_point;
+                    ROS_INFO("Tera Total Point: %d", pointPublish.data);
+                    mainClass._point.publish(pointPublish);
+                    cout << endl;
+
+                    ROS_INFO("Finish All Mission");
+                    finish_mission = true;
+                    cout << endl;
+                }
+
+                if (ros::Time::now().toSec() - initialTime.toSec() > 100)
                 {
                     if (!pid_closed)
                     {
@@ -1394,18 +1439,6 @@ int main(int argc, char **argv)
                         mainClass._shutdown.publish(turnoff);
                         pid_closed = true;
                     }
-
-                    timePublish.data = ros::Time::now().toSec() - initialTime.toSec();
-                    ROS_INFO("Mission Time: %f", timePublish.data);
-                    mainClass._time.publish(timePublish);
-
-                    pointPublish.data = tera_point;
-                    ROS_INFO(" Tera Total Point: %d", pointPublish.data);
-                    mainClass._point.publish(pointPublish);
-
-                    cout << endl;
-                    ROS_INFO("Finish All Mission");
-                    finish_mission = true;
                 }
 
                 pointPublish.data = tera_point;
