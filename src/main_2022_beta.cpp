@@ -688,20 +688,20 @@ public:
 
     void emergency_callback(const std_msgs::Bool::ConstPtr &msg)
     {
-        // if (msg->data)
-        // {
-        //     now_Mode = EMERGENCY;
-        //     std_msgs::Bool publisher;
-        //     publisher.data = true;
-        //     _StopOrNot.publish(publisher);
-        // }
-        // else
-        // {
-        //     now_Mode = NORMAL;
-        //     std_msgs::Bool publisher;
-        //     publisher.data = false;
-        //     _StopOrNot.publish(publisher);
-        // }
+        if (msg->data)
+        {
+            now_Mode = EMERGENCY;
+            std_msgs::Bool publisher;
+            publisher.data = true;
+            _StopOrNot.publish(publisher);
+        }
+        else
+        {
+            now_Mode = NORMAL;
+            std_msgs::Bool publisher;
+            publisher.data = false;
+            _StopOrNot.publish(publisher);
+        }
     }
 
     void moving_callback(const std_msgs::Bool::ConstPtr &msg)
@@ -882,13 +882,13 @@ public:
     {
         if (now_Status > READY)
         {
-            now_Status = SETUP;
-            mission_num = 0;
-            goal_num = 0;
-            moving = false;
-            doing = false;
-            finish_mission = false;
-            tera_point = 0;
+            // now_Status = SETUP;
+            // mission_num = 0;
+            // goal_num = 0;
+            // moving = false;
+            // doing = false;
+            // finish_mission = false;
+            // tera_point = 0;
         }
         else
         {
